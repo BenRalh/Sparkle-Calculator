@@ -1,8 +1,62 @@
 .stage {
   position: relative;
   /* Roomy padding gives the sparkles space to float beyond the calculator. */
-  padding: 70px;
+  padding: 28px 70px 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
+
+/* Cute app title */
+.app-title {
+  text-align: center;
+  margin: 0;
+  z-index: 3;
+}
+
+.app-title h1 {
+  margin: 0;
+  font-family: 'Pacifico', cursive;
+  font-weight: 400;
+  font-size: 46px;
+  line-height: 1.1;
+  background: linear-gradient(100deg, #ff9ec4, #ffb86b, #b07ff0, #6fd6f0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 5px rgba(150, 110, 200, 0.25));
+}
+
+.app-title p {
+  margin: 2px 0 0;
+  font-family: 'Baloo 2', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #8a7a9a;
+  text-transform: lowercase;
+}
+
+/* Mute toggle, fixed top-right */
+.mute-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 75;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 5px 0 #c9bce0, 0 7px 12px rgba(150, 110, 200, 0.28);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+}
+
+.mute-btn:hover { filter: brightness(1.05); transform: translateY(-2px); box-shadow: 0 7px 0 #c9bce0, 0 11px 16px rgba(150, 110, 200, 0.3); }
+.mute-btn:active { transform: translateY(5px); box-shadow: 0 0 0 #c9bce0, 0 2px 5px rgba(150, 110, 200, 0.25); }
 
 .sparkles {
   position: absolute;

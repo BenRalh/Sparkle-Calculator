@@ -191,30 +191,182 @@
   100% { opacity: 0; transform: translateY(-52px) scale(0.9); }
 }
 
-/* Toolbar -------------------------------------------------------------- */
-.unicorn-toolbar {
+/* Pet panel ------------------------------------------------------------ */
+.pet-panel {
   position: fixed;
   left: 50%;
-  bottom: 18px;
+  bottom: 16px;
   transform: translateX(-50%);
   z-index: 70;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 10px 26px rgba(173, 152, 196, 0.4);
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  /* Explicit width keeps the three groups on one row until small screens. */
+  width: min(648px, calc(100vw - 24px));
+  padding: 9px 16px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 30px rgba(173, 152, 196, 0.4);
   backdrop-filter: blur(12px);
+  font-family: 'Baloo 2', system-ui, sans-serif;
 }
 
-.unicorn-toolbar-title {
+.pet-info { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+
+.pet-name {
   font-weight: 700;
-  color: #7a6a88;
-  font-size: 14px;
-  padding: 0 6px;
+  font-size: 16px;
+  color: #6b5b7b;
+  white-space: nowrap;
 }
+
+.pet-happy { display: flex; align-items: center; gap: 6px; }
+.pet-happy-face { font-size: 16px; }
+
+.pet-happy-bar {
+  position: relative;
+  width: 110px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(150, 120, 170, 0.2);
+  overflow: hidden;
+}
+
+.pet-happy-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff9ec4, #ffb86b, #b07ff0);
+  transition: width 0.4s ease;
+}
+
+.pet-foods { display: flex; gap: 5px; justify-content: center; }
+
+.pet-food {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 0 #e3d6ef, 0 6px 10px rgba(150, 110, 200, 0.22);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+}
+
+.pet-food:hover { filter: brightness(1.05); transform: translateY(-2px); box-shadow: 0 6px 0 #e3d6ef, 0 9px 14px rgba(150, 110, 200, 0.28); }
+.pet-food:active { transform: translateY(4px); box-shadow: 0 0 0 #e3d6ef, 0 2px 4px rgba(150, 110, 200, 0.22); }
+
+.pet-actions { display: flex; gap: 8px; }
+
+/* Customize popover ---------------------------------------------------- */
+/* Anchored to the right of the centred calculator so it stays clear of the
+   keys (and you can watch the unicorn recolour live). */
+.pet-customize {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 73;
+  width: 180px;
+  max-height: calc(100vh - 28px);
+  overflow-y: auto;
+  padding: 13px 14px 15px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 44px rgba(150, 120, 180, 0.45);
+  backdrop-filter: blur(12px);
+  font-family: 'Baloo 2', system-ui, sans-serif;
+  animation: pet-pop 0.22s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+
+@keyframes pet-pop {
+  0% { opacity: 0; transform: translate(12px, -50%) scale(0.94); }
+  100% { opacity: 1; transform: translate(0, -50%) scale(1); }
+}
+
+/* Narrow screens: no side room, so dock it above the pet panel instead. */
+@media (max-width: 700px) {
+  .pet-customize {
+    right: 50%;
+    top: auto;
+    bottom: 88px;
+    transform: translateX(50%);
+    width: min(300px, calc(100vw - 24px));
+    animation: none;
+  }
+}
+
+.pet-customize-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #6b5b7b;
+  margin-bottom: 10px;
+}
+
+.pet-x {
+  border: none;
+  background: rgba(150, 120, 170, 0.15);
+  color: #6b5b7b;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+}
+.pet-x:hover { background: rgba(150, 120, 170, 0.28); }
+
+.pet-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.pet-field > span { font-size: 13px; font-weight: 600; color: #8a7a9a; }
+
+.pet-name-input {
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 2px solid #e3d6ef;
+  background: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #5a4a66;
+  outline: none;
+}
+.pet-name-input:focus { border-color: #c4a7f0; }
+
+.pet-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pet-preset {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 9px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(150, 120, 170, 0.08);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a4a66;
+  transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.pet-preset:hover { background: rgba(150, 120, 170, 0.16); transform: translateY(-1px); }
+.pet-preset.is-active { border-color: #c4a7f0; background: rgba(196, 167, 240, 0.2); }
+
+.pet-swatch { display: flex; border-radius: 5px; overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.pet-swatch > span { width: 6px; height: 18px; display: block; }
+
+.pet-preset-label { white-space: nowrap; }
 
 .unicorn-btn {
   --edge: #b89cd8;

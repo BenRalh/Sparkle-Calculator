@@ -13,6 +13,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Reserve room so the centred calculator clears the fixed pet panel. */
+  padding-bottom: 84px;
+  box-sizing: border-box;
   background: linear-gradient(
     135deg,
     #ffd1dc 0%,

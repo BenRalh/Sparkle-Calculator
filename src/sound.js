@@ -6,6 +6,18 @@ let ctx = null
 let master = null
 let lastSparkle = 0
 let lastClick = 0
+let muted = false
+
+export function setMuted(v) {
+  muted = !!v
+  if (muted && typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel()
+  }
+}
+
+export function getMuted() {
+  return muted
+}
 
 function getCtx() {
   if (typeof window === 'undefined') return null
@@ -66,6 +78,7 @@ export function primeAudio() {
 const SPARKLE_NOTES = [1318.51, 1567.98, 1760.0, 2093.0, 2349.32]
 
 export function playSparkle() {
+  if (muted) return
   const ac = getCtx()
   if (!ac) return
   const now = ac.currentTime
@@ -82,6 +95,7 @@ export function playSparkle() {
 const CLICK_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0]
 
 export function playClick() {
+  if (muted) return
   const ac = getCtx()
   if (!ac) return
   const now = ac.currentTime
@@ -97,6 +111,7 @@ export function playClick() {
 // Soft spoken/whispered phrase for certain easter eggs.
 let lastWhisper = { text: '', at: 0 }
 export function whisper(text, { pitch = 0.7, rate = 0.85, volume = 0.32 } = {}) {
+  if (muted) return
   try {
     const synth = window.speechSynthesis
     if (!synth) return

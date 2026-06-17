@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Unicorn from './Unicorn.jsx'
 import EasterEgg, { EGGS } from './EasterEgg.jsx'
-import { playSparkle, playClick, primeAudio } from './sound.js'
+import { playSparkle, playClick, primeAudio, setMuted as setSoundMuted } from './sound.js'
 import './App.css'
 
 const OPERATORS = {
@@ -69,6 +69,18 @@ export default function App() {
   const [operator, setOperator] = useState(null)
   // True right after an operator is pressed, so the next digit starts fresh.
   const [waiting, setWaiting] = useState(false)
+
+  // Pet customization (persisted across sessions).
+  const [petName, setPetName] = useState(() => localStorage.getItem('pet.name') || 'Sparkle')
+  const [preset, setPreset] = useState(() => localStorage.getItem('pet.preset') || 'rainbow')
+  const [muted, setMuted] = useState(() => localStorage.getItem('pet.muted') === '1')
+
+  useEffect(() => { localStorage.setItem('pet.name', petName) }, [petName])
+  useEffect(() => { localStorage.setItem('pet.preset', preset) }, [preset])
+  useEffect(() => {
+    localStorage.setItem('pet.muted', muted ? '1' : '0')
+    setSoundMuted(muted)
+  }, [muted])
 
   const inputDigit = useCallback((digit) => {
     setDisplay((prev) => {
@@ -213,7 +225,23 @@ export default function App() {
   return (
     <div className="stage">
       <Sparkles />
-      <Unicorn />
+      <Unicorn name={petName} setName={setPetName} preset={preset} setPreset={setPreset} />
+
+      <button
+        className="mute-btn"
+        onClick={() => { setMuted((m) => !m); if (muted) playClick() }}
+        onMouseEnter={() => { if (!muted) playSparkle() }}
+        aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+        title={muted ? 'Unmute' : 'Mute'}
+      >
+        {muted ? '🔇' : '🔊'}
+      </button>
+
+      <header className="app-title">
+        <h1>{petName || 'Sparkle'}</h1>
+        <p>✨ calculator ✨</p>
+      </header>
+
       <div className="calculator">
       <div className="display" data-testid="display">{display}</div>
       <div className="keypad">
