@@ -1,0 +1,141 @@
+.stage {
+  position: relative;
+  /* Roomy padding gives the sparkles space to float beyond the calculator. */
+  padding: 70px;
+}
+
+.sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sparkle {
+  position: absolute;
+  display: block;
+  transform-origin: center;
+  animation-name: twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.85));
+  will-change: transform, opacity;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.15) rotate(90deg);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(0.85) rotate(135deg);
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sparkle {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+.calculator {
+  position: relative;
+  z-index: 1;
+  width: 320px;
+  padding: 20px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 20px 60px rgba(173, 152, 196, 0.45);
+  backdrop-filter: blur(14px);
+}
+
+.display {
+  height: 96px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 56px;
+  font-weight: 300;
+  color: #6b5b7b;
+  overflow: hidden;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.key {
+  --btn: #ffffff;
+  --edge: #d9cfe6;
+  height: 64px;
+  border: none;
+  border-radius: 18px;
+  font-size: 26px;
+  font-weight: 600;
+  color: #5a4a66;
+  background: var(--btn);
+  cursor: pointer;
+  /* The solid offset shadow is the 3D "side wall"; the blurred one is cast shadow. */
+  box-shadow: 0 6px 0 var(--edge), 0 9px 14px rgba(150, 130, 170, 0.28);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+  user-select: none;
+}
+
+.key:hover {
+  filter: brightness(1.05) saturate(1.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--edge), 0 13px 18px rgba(150, 130, 170, 0.3);
+}
+
+/* Press it right down onto its edge for a chunky, tactile click. */
+.key:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 var(--edge), 0 2px 5px rgba(150, 130, 170, 0.25);
+}
+
+/* Pastel rainbow across the number keys — each with a darker 3D edge. */
+.key--pink   { --btn: #ffd1dc; --edge: #efa6bc; }
+.key--peach  { --btn: #ffe0c2; --edge: #efc095; }
+.key--lemon  { --btn: #fff4bf; --edge: #ecd884; }
+.key--mint   { --btn: #d4f5c8; --edge: #a6df93; }
+.key--sky    { --btn: #c2eefb; --edge: #8fd4ec; }
+.key--lilac  { --btn: #ddd6fb; --edge: #b7abef; }
+.key--rose   { --btn: #f6cde7; --edge: #e3a0cd; }
+
+.key--function {
+  --btn: #efe6f7;
+  --edge: #c9bce0;
+  color: #7a6a88;
+}
+
+.key--operator {
+  --edge: #a87fd0;
+  background: linear-gradient(135deg, #ffb6c1, #c4a7f0);
+  color: #fff;
+}
+
+.key--operator.key--active {
+  background: linear-gradient(135deg, #ff9fb6, #a98cf0);
+  outline: 3px solid rgba(255, 255, 255, 0.9);
+  outline-offset: -3px;
+}
+
+.key--zero {
+  grid-column: span 2;
+}

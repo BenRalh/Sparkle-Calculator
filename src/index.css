@@ -1,0 +1,27 @@
+:root {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    #ffd1dc 0%,
+    #ffe0c2 18%,
+    #fff7c2 36%,
+    #d4f5c8 54%,
+    #c2eefb 72%,
+    #d6d4fb 86%,
+    #f3d1f9 100%
+  );
+  background-attachment: fixed;
+}
