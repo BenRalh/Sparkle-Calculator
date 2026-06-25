@@ -190,6 +190,11 @@ export default function Unicorn({ name, setName, preset, setPreset }) {
   const moodTimer = useRef(null)
   const lastActive = useRef(0)
 
+  // Rainbow trail.
+  const [trail, setTrail] = useState([])
+  const prevPos = useRef(pos)
+  const trailIdx = useRef(0)
+
   // Persist happiness.
   useEffect(() => {
     localStorage.setItem('pet.happiness', String(Math.round(happiness)))
@@ -274,6 +279,37 @@ export default function Unicorn({ name, setName, preset, setPreset }) {
     const id = setInterval(() => bumpHappy(-1), 5000)
     return () => clearInterval(id)
   }, [bumpHappy])
+
+  // Rainbow trail — whenever the unicorn moves, lay a line of fading dots
+  // (cycling the active preset's mane colours) along its path, staggered by
+  // delay so they trace the glide behind it.
+  useEffect(() => {
+    const prev = prevPos.current
+    prevPos.current = pos
+    const dx = pos.x - prev.x
+    const dy = pos.y - prev.y
+    const dist = Math.hypot(dx, dy)
+    if (dist < 3) return
+
+    const glideMs = dragging ? 0 : 2500
+    const n = dist > 40 ? Math.min(9, Math.round(dist / 70)) : 1
+    const half = UNICORN_SIZE / 2
+    const batch = []
+    for (let i = 1; i <= n; i++) {
+      const t = i / n
+      batch.push({
+        id: pid.current++,
+        x: prev.x + dx * t + half,
+        y: prev.y + dy * t + half + 6,
+        color: palette.mane[trailIdx.current++ % palette.mane.length],
+        size: 12 + Math.random() * 9,
+        delay: glideMs * t * 0.82,
+      })
+    }
+    setTrail((s) => [...s.slice(-26), ...batch])
+    const ids = new Set(batch.map((b) => b.id))
+    setTimeout(() => setTrail((s) => s.filter((d) => !ids.has(d.id))), glideMs * 0.82 + 1000)
+  }, [pos, dragging, palette])
 
   // Wandering.
   useEffect(() => {
@@ -361,6 +397,18 @@ export default function Unicorn({ name, setName, preset, setPreset }) {
 
   return (
     <>
+      {trail.map((d) => (
+        <span
+          key={d.id}
+          className="unicorn-trail"
+          style={{
+            left: d.x, top: d.y, width: d.size, height: d.size,
+            background: `radial-gradient(circle, ${d.color} 28%, transparent 72%)`,
+            animationDelay: `${d.delay}ms`,
+          }}
+        />
+      ))}
+
       <div
         className={`unicorn ${dragging ? 'is-dragging' : ''} ${resting ? 'is-resting' : ''}`}
         style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}

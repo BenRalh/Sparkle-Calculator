@@ -12,3 +12,8 @@ dist-ssr
 
 # Claude Code local (personal) settings
 .claude/settings.local.json
+
+# Unrelated skill artifacts that live in this folder
+sol-mate/
+sol-mate.skill
+sol-mate.zip
