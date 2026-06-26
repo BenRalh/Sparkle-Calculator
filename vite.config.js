@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig(({ command }) => ({
-  // Production (GitHub Pages) is served from a repo subpath; dev stays at root.
-  base: command === 'build' ? '/Sparkle-Calculator/' : '/',
+// Relative base ('./') so the build works whether it's served from a domain
+// root (Vercel) or a repo subpath (GitHub Pages). Single-page app, no routing.
+export default defineConfig({
+  base: './',
   plugins: [react()],
-}))
+})
