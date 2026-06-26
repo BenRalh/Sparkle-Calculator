@@ -259,3 +259,115 @@ export const applyDir = (text, hemisphere) =>
 export const findCity = (name) => cities.find((c) => c.name === name)
 
 export const demoProject = { cityName: 'Melbourne', part: 'windows' }
+
+// Returns [{label, value}] of location-specific numerical specs for a building part.
+// absLat drives latitude-sensitive calcs (overhang depth, sun angles).
+export function getLocationSpecs(partId, climateId, absLat, hemi) {
+  const eq = hemi === 'S' ? 'North' : 'South'
+  const opp = hemi === 'S' ? 'south' : 'north'
+
+  if (partId === 'sun') {
+    const winterAlt = Math.max(5, Math.round(90 - absLat - 23.5))
+    return [
+      { label: 'Orientation', value: `≤ 15° east of true ${eq}` },
+      { label: 'Winter noon sun', value: `${winterAlt}° above horizon` },
+    ]
+  }
+  if (partId === 'roof') {
+    const r = climateId === 'tropical' ? 'R4.0' :
+              climateId === 'arid' ? 'R5.0–R6.0' :
+              climateId === 'mediterranean' ? 'R4.5–R5.0' :
+              climateId === 'temperate' ? (absLat > 45 ? 'R6.0' : 'R5.5') :
+              absLat > 55 ? 'R8.0+' : absLat > 50 ? 'R7.0' : 'R6.5'
+    const sri = (climateId === 'tropical' || climateId === 'arid') ? 'SRI ≥ 78' :
+                climateId === 'mediterranean' ? 'SRI ≥ 50' : 'light colour'
+    return [
+      { label: 'Ceiling insulation', value: r },
+      { label: 'Roof finish', value: sri },
+    ]
+  }
+  if (partId === 'walls') {
+    const r = climateId === 'tropical' ? 'R1.5' :
+              climateId === 'arid' ? 'R2.5–R3.0' :
+              climateId === 'mediterranean' ? 'R2.0–R2.5' :
+              climateId === 'temperate' ? 'R2.5–R3.0' :
+              absLat > 55 ? 'R4.0–R5.0' : 'R3.0–R4.0'
+    return [
+      { label: 'Total wall', value: r },
+      { label: 'Key rule', value: 'Continuous insulation, no thermal bridges' },
+    ]
+  }
+  if (partId === 'windows') {
+    const shgc = climateId === 'tropical' ? '< 0.20' :
+                 climateId === 'arid' ? '< 0.25' :
+                 climateId === 'mediterranean' ? '0.25–0.40' :
+                 climateId === 'temperate' ? '0.40–0.60' : '> 0.50'
+    const u = climateId === 'tropical' ? '< 3.0' :
+              climateId === 'arid' ? '< 2.5' :
+              climateId === 'mediterranean' ? '< 2.0' :
+              climateId === 'temperate' ? '< 1.8' : '< 1.2'
+    const area = climateId === 'tropical' ? '10–15%' :
+                 climateId === 'arid' ? '10–20%' :
+                 climateId === 'mediterranean' ? '20–30%' :
+                 climateId === 'temperate' ? '25–40%' : '20–35%'
+    return [
+      { label: `${eq}-face SHGC`, value: shgc },
+      { label: `${eq}-face U-value`, value: `${u} W/m²K` },
+      { label: `${eq} glazing area`, value: `${area} of floor area` },
+    ]
+  }
+  if (partId === 'eaves') {
+    const sumAlt = Math.min(89, 90 - absLat + 23.5)
+    const depth = (1 / Math.tan(sumAlt * Math.PI / 180)).toFixed(2)
+    const winterAlt = Math.max(5, Math.round(90 - absLat - 23.5))
+    return [
+      { label: `${eq}-face overhang`, value: `~${depth}m per 1m window height` },
+      { label: 'Winter sun angle', value: `${winterAlt}° (overhang must admit this)` },
+    ]
+  }
+  if (partId === 'door') {
+    const ach = climateId === 'cold' ? '≤ 0.5 ACH@50Pa' :
+                climateId === 'temperate' ? '≤ 1.0 ACH@50Pa' : '≤ 2.0 ACH@50Pa'
+    return [
+      { label: 'Airtightness target', value: ach },
+      { label: 'Sealing', value: 'Draught strips + threshold on all external doors' },
+    ]
+  }
+  if (partId === 'floor') {
+    const s = climateId === 'tropical' ? 'Skip slab — raised lightweight floor' :
+              climateId === 'arid' ? 'R1.0 edge + R2.0 sub-slab' :
+              climateId === 'mediterranean' ? 'R1.0 slab edge' :
+              climateId === 'temperate' ? 'R1.5 edge + R2.5 sub-slab' :
+              'R2.0 edge + R3.0 sub-slab'
+    return [
+      { label: 'Slab insulation', value: s },
+      { label: 'Finish', value: 'Exposed mass (polished concrete, stone, tile)' },
+    ]
+  }
+  if (partId === 'ground') {
+    const cover = climateId === 'arid' ? 'Light paving (SRI ≥ 29), limit lawn' :
+                  climateId === 'tropical' ? 'Permeable, planted, well-shaded' :
+                  'Mix of lawn + light-colour paving'
+    return [
+      { label: 'Ground cover', value: cover },
+      { label: 'Rule', value: `Keep dark hardscape away from ${eq.toLowerCase()}-face glass` },
+    ]
+  }
+  if (partId === 'tree') {
+    const type = (climateId === 'temperate' || climateId === 'mediterranean')
+      ? 'Deciduous' : climateId === 'cold' ? 'Evergreen (windbreak)' : 'Dense evergreen shade'
+    return [
+      { label: 'Species type', value: `${type} on ${eq.toLowerCase()} & west sides` },
+      { label: 'Allow for', value: '15–20yr mature canopy spread in design' },
+    ]
+  }
+  if (partId === 'zoning') {
+    const core = climateId === 'tropical' ? '100% open (no heating)' :
+                 climateId === 'cold' ? '50–65% compact heated core' : '75–85%'
+    return [
+      { label: 'Conditioned area', value: core },
+      { label: 'Buffer zones', value: `Garage/store/laundry on ${opp}/west side` },
+    ]
+  }
+  return []
+}

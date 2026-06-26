@@ -178,6 +178,20 @@ body {
 .sm-human h3 { color: #9b7d4f; }
 .sm-human p { color: #6f5e48; font-size: 0.9rem; }
 
+.sm-specs { background: #f3f0ea; border-radius: 0 12px 12px 0; border-left-color: #b8a882; }
+.sm-specs h3 { color: #6a5530; }
+.sm-spec-list {
+  list-style: none; margin: 6px 0 0; padding: 0;
+}
+.sm-spec-list li {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+  font-size: 0.86rem; line-height: 1.4; color: #3c2f22;
+}
+.sm-spec-list li:last-child { border-bottom: none; }
+.sm-spec-label { color: #7a6a50; font-weight: 600; white-space: nowrap; }
+.sm-spec-list strong { text-align: right; }
+
 /* ---------- empty state ---------- */
 .sm-empty { text-align: center; padding: 18px 6px; color: #6f5e48; }
 .sm-empty-big { font-size: 2.6rem; margin-bottom: 6px; }

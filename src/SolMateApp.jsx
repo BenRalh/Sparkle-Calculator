@@ -12,6 +12,7 @@ import {
   applyDir,
   findCity,
   demoProject,
+  getLocationSpecs,
 } from './passiveData.js'
 import './SolMate.css'
 
@@ -51,6 +52,7 @@ export default function SolMateApp() {
 
   const part = selected ? parts[selected] : null
   const rec = part ? part.byClimate[city.climate] : null
+  const specs = part ? getLocationSpecs(selected, city.climate, absLat, hemi) : []
 
   return (
     <div className="sm-app">
@@ -179,6 +181,16 @@ export default function SolMateApp() {
                 <h3 style={{ color: climate.accent }}>📍 In {city.name} ({climate.name})</h3>
                 <p>{applyDir(rec.here, hemi)}</p>
               </div>
+              {specs.length > 0 && (
+                <div className="sm-rec-row sm-specs">
+                  <h3>📐 Target specs — {city.name}</h3>
+                  <ul className="sm-spec-list">
+                    {specs.map((s, i) => (
+                      <li key={i}><span className="sm-spec-label">{s.label}:</span> <strong>{s.value}</strong></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="sm-rec-row sm-human">
                 <h3>🧑‍🔧 Where you still need a human</h3>
                 <p>{part.human}</p>

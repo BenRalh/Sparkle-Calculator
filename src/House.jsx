@@ -180,12 +180,12 @@ function Scene({ selected, onSelect, lat, ground }) {
             <RoundedBox args={[0.42, 0.16, 0.3]} radius={0.05} position={[-0.85, 2.05, -1.3]}>{mat('zoning', C.white)}</RoundedBox>
             <RoundedBox args={[0.42, 0.16, 0.3]} radius={0.05} position={[-0.3, 2.05, -1.3]}>{mat('zoning', C.white)}</RoundedBox>
             <mesh position={[0.7, 1.6, 0.0]}><boxGeometry args={[1.5, 0.03, 1.2]} />{mat('zoning', C.rug)}</mesh>
-            {/* outdoor sectional sofa + coffee table + rug (front deck) */}
-            <mesh position={[0.5, 0.12, 2.15]}><boxGeometry args={[2.3, 0.04, 1.9]} />{mat('zoning', C.rug)}</mesh>
-            <RoundedBox args={[1.7, 0.34, 0.75]} radius={0.08} position={[0.35, 0.3, 2.45]}>{mat('zoning', C.sage)}</RoundedBox>
-            <RoundedBox args={[0.75, 0.34, 1.15]} radius={0.08} position={[1.35, 0.3, 1.95]}>{mat('zoning', C.sage)}</RoundedBox>
-            <RoundedBox args={[1.7, 0.42, 0.2]} radius={0.06} position={[0.35, 0.55, 2.75]}>{mat('zoning', C.sage)}</RoundedBox>
-            <RoundedBox args={[0.6, 0.18, 0.6]} radius={0.05} position={[0.3, 0.22, 1.7]}>{mat('zoning', C.woodLt)}</RoundedBox>
+            {/* lounge sofa + coffee table + rug (ground floor, front-right interior) */}
+            <mesh position={[0.65, 0.12, 0.75]}><boxGeometry args={[1.8, 0.04, 1.3]} />{mat('zoning', C.rug)}</mesh>
+            <RoundedBox args={[1.5, 0.34, 0.6]} radius={0.08} position={[0.6, 0.3, 1.2]}>{mat('zoning', C.sage)}</RoundedBox>
+            <RoundedBox args={[0.6, 0.34, 1.0]} radius={0.08} position={[1.25, 0.3, 0.7]}>{mat('zoning', C.sage)}</RoundedBox>
+            <RoundedBox args={[1.5, 0.42, 0.18]} radius={0.06} position={[0.6, 0.55, 1.47]}>{mat('zoning', C.sage)}</RoundedBox>
+            <RoundedBox args={[0.52, 0.18, 0.52]} radius={0.05} position={[0.5, 0.22, 0.52]}>{mat('zoning', C.woodLt)}</RoundedBox>
           </group>
 
           {/* ---- Tree + pot plants (landscaping) ---- */}
