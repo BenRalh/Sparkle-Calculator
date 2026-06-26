@@ -3,29 +3,29 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Float, RoundedBox } from '@react-three/drei'
 import { groundCovers } from './passiveData.js'
 
-const HL = '#ffcf4d' // sunny gold highlight
+const HL = '#f8d030' // pixel gold highlight
 
-// Pastel palette
+// Stardew Valley pixel art palette
 const C = {
-  wall: '#fbe9e1',
-  roof: '#f3a79c',
-  floor: '#ecd6ad',
-  door: '#cc9270',
-  glass: '#cfeaff',
-  trim: '#fffdf8',
-  plinth: '#e7e1d7',
-  woodLt: '#e3c79a',
-  islandBlue: '#c6d6e6',
-  mustard: '#ecc46a',
-  sage: '#bcd6c0',
-  pink: '#f4c9d6',
-  white: '#fbfbf7',
-  rug: '#ecd7e6',
-  pot: '#e0a890',
-  leaf1: '#8fcf7e',
-  leaf2: '#a6dd92',
-  trunk: '#b98a5e',
-  sun: '#ffd23f',
+  wall: '#e8d088',
+  roof: '#8b2828',
+  floor: '#b07830',
+  door: '#6a3010',
+  glass: '#50a8e8',
+  trim: '#d8c070',
+  plinth: '#787060',
+  woodLt: '#c07030',
+  islandBlue: '#305888',
+  mustard: '#d89020',
+  sage: '#406830',
+  pink: '#c86070',
+  white: '#f0e0c0',
+  rug: '#704890',
+  pot: '#b85820',
+  leaf1: '#188020',
+  leaf2: '#289838',
+  trunk: '#603818',
+  sun: '#f8d030',
 }
 
 function Scene({ selected, onSelect, lat, ground }) {
@@ -70,9 +70,9 @@ function Scene({ selected, onSelect, lat, ground }) {
 
   return (
     <>
-      <ambientLight intensity={0.72} />
-      <hemisphereLight args={['#ffffff', '#cbd6e0', 0.45]} />
-      <directionalLight position={sunPos} intensity={1.05} color="#fff4d8" />
+      <ambientLight intensity={0.85} />
+      <hemisphereLight args={['#ffe8a0', '#3a2800', 0.5]} />
+      <directionalLight position={sunPos} intensity={1.2} color="#ffe870" />
 
       {/* Sun — click for orientation */}
       <group position={sunPos}>
@@ -231,7 +231,11 @@ function Scene({ selected, onSelect, lat, ground }) {
 
 export default function House({ selected, onSelect, lat, ground }) {
   return (
-    <Canvas camera={{ position: [8, 5.5, 8.5], fov: 42 }} gl={{ alpha: true, antialias: true }}>
+    <Canvas
+      camera={{ position: [8, 5.5, 8.5], fov: 42 }}
+      gl={{ alpha: true, antialias: false }}
+      dpr={0.28}
+    >
       <Scene selected={selected} onSelect={onSelect} lat={lat} ground={ground} />
     </Canvas>
   )

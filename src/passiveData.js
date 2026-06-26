@@ -12,31 +12,31 @@ export const climates = {
     id: 'tropical', name: 'Tropical',
     blurb: 'Hot & humid all year, small day–night swing.',
     priorities: ['Shade everything', 'Cross-ventilate', 'Stay lightweight'],
-    accent: '#13b3a3', sky: ['#9fe9df', '#eafbf7'],
+    accent: '#20d4c0', sky: ['#2a1040', '#120820'],
   },
   arid: {
     id: 'arid', name: 'Arid (desert)',
     blurb: 'Hot days, cold nights, intense dry sun.',
     priorities: ['Thermal mass', 'Deep shade', 'Night-flush air'],
-    accent: '#e08a3c', sky: ['#ffd29a', '#fff0d8'],
+    accent: '#e8922a', sky: ['#4a1e06', '#1e0800'],
   },
   mediterranean: {
     id: 'mediterranean', name: 'Mediterranean',
     blurb: 'Hot dry summers, mild wet winters.',
     priorities: ['Summer shade & mass', 'Cross-ventilate', 'Mild-winter sun'],
-    accent: '#cf9b4a', sky: ['#cfe6ff', '#fff2cf'],
+    accent: '#e0b030', sky: ['#0c1e50', '#060e28'],
   },
   temperate: {
     id: 'temperate', name: 'Temperate',
     blurb: 'Real winters and warm summers — needs both.',
     priorities: ['Solar orientation', 'Seasonal shading', 'Insulate + ventilate'],
-    accent: '#4a90d9', sky: ['#c4e6ff', '#eef7ff'],
+    accent: '#50a0e8', sky: ['#0e1e34', '#081018'],
   },
   cold: {
     id: 'cold', name: 'Cold / Continental',
     blurb: 'Long cold seasons — keep the heat in.',
     priorities: ['Insulate & seal', 'Maximise solar gain', 'Mass in the sun'],
-    accent: '#6f88a8', sky: ['#d2deec', '#eef3f9'],
+    accent: '#80a8d0', sky: ['#081828', '#040c14'],
   },
 }
 
