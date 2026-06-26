@@ -185,6 +185,55 @@ body {
 
 .sm-foot { font-size: 0.74rem; color: #a8977f; line-height: 1.45; margin-top: auto; }
 
+/* ---------- location search ---------- */
+.sm-search { position: relative; }
+.sm-input {
+  width: 100%;
+  border: 2px solid #ecd9bd;
+  background: #fff;
+  border-radius: 13px;
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: #4a3a29;
+  outline: none;
+}
+.sm-input:focus { border-color: #ffc861; box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.18); }
+.sm-results {
+  list-style: none; margin: 6px 0 0; padding: 6px;
+  position: absolute; z-index: 5; left: 0; right: 0;
+  background: #fff; border: 1.5px solid #f0e3cd; border-radius: 13px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14); max-height: 270px; overflow-y: auto;
+}
+.sm-result {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  background: none; border: none; cursor: pointer; text-align: left;
+  padding: 9px 10px; border-radius: 9px; font-family: inherit; font-size: 0.9rem; color: #4a3c2c;
+}
+.sm-result:hover { background: #fff4d6; }
+.sm-result-tag { font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+
+.sm-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.sm-qchip {
+  cursor: pointer; border: 1.5px solid #ecd9bd; background: #fff; color: #6a5740;
+  border-radius: 999px; padding: 5px 11px; font-family: inherit; font-weight: 600; font-size: 0.8rem;
+  transition: all 0.14s ease;
+}
+.sm-qchip:hover { border-color: #ffc861; }
+.sm-qchip.on { background: #fff4d6; border-color: #ffb703; color: #7a4a00; }
+
+.sm-loc { margin-top: 13px; }
+
+/* ---------- ground cover toggle ---------- */
+.sm-ground { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+.sm-gchip {
+  cursor: pointer; border: 2px solid #ecd9bd; background: #fff; color: #5e4d39;
+  border-radius: 11px; padding: 7px 11px; font-family: inherit; font-weight: 600; font-size: 0.84rem;
+  transition: all 0.14s ease;
+}
+.sm-gchip:hover { border-color: #ffc861; }
+.sm-gchip.on { background: #eef7e6; border-color: #7cc04a; color: #3f6a26; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 820px) {
   .sm-app { flex-direction: column; }
