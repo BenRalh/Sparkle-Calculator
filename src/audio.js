@@ -219,6 +219,12 @@ export function playBark() { if (!sfxOn) return; blip8(240, 0, 0.09, 'square', 0
 export function playMeow() { if (!sfxOn) return; blip8(620, 0, 0.12, 'sawtooth', 0.045); blip8(760, 0.06, 0.14, 'sawtooth', 0.045); blip8(560, 0.16, 0.16, 'sawtooth', 0.04) }
 export function playChirp() { if (!sfxOn) return; blip8(1800, 0, 0.05, 'square', 0.035); blip8(2200, 0.05, 0.05, 'square', 0.03) }
 export function playSparkle() { if (!sfxOn) return;[880, 1108, 1318, 1760].forEach((f, i) => blip8(f, i * 0.05, 0.12, 'triangle', 0.05)) }
+// NPC "mumble" — a few quick random-pitch blips like game dialogue
+export function playMumble() {
+  if (!sfxOn) return
+  const n = 4 + Math.floor(Math.random() * 3)
+  for (let i = 0; i < n; i++) blip8(360 + Math.random() * 520, i * 0.075, 0.06, 'square', 0.035)
+}
 export function playParty() { if (!sfxOn) return;[523, 659, 784, 1046, 784, 1046].forEach((f, i) => blip8(f, i * 0.09, 0.16, 'square', 0.05)) }
 
 // looping rain: filtered white noise

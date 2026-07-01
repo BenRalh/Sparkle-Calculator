@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Float, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
-import { playTick, playBlip, playFootstep, playBark, playMeow, playChirp } from './audio.js'
+import { playTick, playBlip, playFootstep, playChirp } from './audio.js'
 
 const HL = '#f8d030' // pixel gold highlight
 
@@ -268,59 +268,38 @@ const COUPLES = [
   { f: { shirt: '#c58bc0', skirt: '#8a5a86', pants: '#8a5a86', hair: '#6a3a14' }, m: { shirt: '#5aa9a0', pants: '#3d4a5b', hair: '#141414' } },
 ]
 
-// ---- critters: dog, cat, birds, plane (extra life + easter eggs) ----
-function Dog({ onEgg }) {
-  const g = useRef(), tail = useRef(), lf = useRef(), lb = useRef()
-  const hop = useRef(0)
-  useFrame((state, dt) => {
-    if (!g.current) return
-    const t = state.clock.elapsedTime
-    const x = Math.sin(t * 0.4) * 1.9
-    if (hop.current > 0) hop.current = Math.max(0, hop.current - dt * 1.6)
-    g.current.position.set(x, 0.02 + hop.current, 2.75)
-    g.current.rotation.y = Math.cos(t * 0.4) >= 0 ? Math.PI / 2 : -Math.PI / 2
-    if (tail.current) tail.current.rotation.z = 0.3 + Math.sin(t * 9) * 0.5
-    const s = Math.sin(t * 9) * 0.4
-    if (lf.current) lf.current.rotation.x = s
-    if (lb.current) lb.current.rotation.x = -s
-  })
-  const click = (e) => { e.stopPropagation(); playBark(); hop.current = 0.35; onEgg && onEgg('🐶') }
-  return (
-    <group ref={g} position={[0, 0.02, 2.75]} onClick={click} onPointerOver={(e) => e.stopPropagation()}>
-      <mesh position={[0, 0.24, 0]}><boxGeometry args={[0.52, 0.24, 0.24]} /><meshStandardMaterial color="#b5763a" roughness={0.9} /></mesh>
-      <mesh position={[0.3, 0.34, 0]}><boxGeometry args={[0.22, 0.22, 0.22]} /><meshStandardMaterial color="#b5763a" roughness={0.9} /></mesh>
-      <mesh position={[0.44, 0.3, 0]}><boxGeometry args={[0.1, 0.1, 0.13]} /><meshStandardMaterial color="#7a4a22" roughness={0.9} /></mesh>
-      <mesh position={[0.26, 0.46, 0.09]}><boxGeometry args={[0.07, 0.11, 0.05]} /><meshStandardMaterial color="#8a5a28" /></mesh>
-      <mesh position={[0.26, 0.46, -0.09]}><boxGeometry args={[0.07, 0.11, 0.05]} /><meshStandardMaterial color="#8a5a28" /></mesh>
-      <group ref={lf} position={[0.17, 0.14, 0.09]}><mesh position={[0, -0.07, 0]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh></group>
-      <group ref={lb} position={[-0.17, 0.14, 0.09]}><mesh position={[0, -0.07, 0]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh></group>
-      <mesh position={[0.17, 0.07, -0.09]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh>
-      <mesh position={[-0.17, 0.07, -0.09]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh>
-      <group ref={tail} position={[-0.26, 0.3, 0]}><mesh position={[-0.09, 0.03, 0]}><boxGeometry args={[0.18, 0.06, 0.06]} /><meshStandardMaterial color="#b5763a" /></mesh></group>
-    </group>
-  )
-}
+// ---- sky life: birds, plane, night fireflies (tailored to time + weather) ----
+const BIRD_DEFS = [
+  { r: 6.0, y: 5.4, speed: 0.32, phase: 0 },
+  { r: 5.2, y: 6.0, speed: 0.40, phase: 2.1 },
+  { r: 6.8, y: 5.0, speed: 0.26, phase: 4.2 },
+  { r: 5.6, y: 5.7, speed: 0.35, phase: 1.1 },
+  { r: 6.4, y: 6.3, speed: 0.30, phase: 3.3 },
+  { r: 5.0, y: 4.8, speed: 0.44, phase: 5.0 },
+]
 
-function Cat({ onEgg }) {
-  const g = useRef(), tail = useRef()
-  const hop = useRef(0)
-  useFrame((state, dt) => {
+function Fireflies() {
+  const g = useRef()
+  const defs = useMemo(() => Array.from({ length: 7 }, () => ({
+    x: Math.random() * 4 - 0.5, y: 0.5 + Math.random() * 1.4, z: 1.2 + Math.random() * 1.8,
+    ph: Math.random() * 6.28, sp: 0.4 + Math.random() * 0.6,
+  })), [])
+  useFrame((state) => {
     if (!g.current) return
     const t = state.clock.elapsedTime
-    if (hop.current > 0) hop.current = Math.max(0, hop.current - dt * 1.8)
-    g.current.position.y = 0.02 + hop.current
-    if (tail.current) tail.current.rotation.x = Math.sin(t * 2) * 0.5
+    g.current.children.forEach((c, i) => {
+      const d = defs[i]
+      c.position.set(d.x + Math.sin(t * d.sp + d.ph) * 0.45, d.y + Math.cos(t * d.sp * 0.8 + d.ph) * 0.3, d.z + Math.sin(t * d.sp * 1.2 + d.ph) * 0.45)
+      c.scale.setScalar(0.5 + Math.abs(Math.sin(t * 2.2 + d.ph)) * 0.9)
+    })
   })
-  const click = (e) => { e.stopPropagation(); playMeow(); hop.current = 0.3; onEgg && onEgg('🐱') }
   return (
-    <group ref={g} position={[-2.15, 0.02, 2.3]} rotation={[0, 0.6, 0]} onClick={click} onPointerOver={(e) => e.stopPropagation()}>
-      <mesh position={[0, 0.17, 0]}><boxGeometry args={[0.34, 0.18, 0.18]} /><meshStandardMaterial color="#5a5a62" roughness={0.9} /></mesh>
-      <mesh position={[0.2, 0.24, 0]}><boxGeometry args={[0.17, 0.17, 0.17]} /><meshStandardMaterial color="#5a5a62" roughness={0.9} /></mesh>
-      <mesh position={[0.17, 0.35, 0.06]}><boxGeometry args={[0.05, 0.08, 0.04]} /><meshStandardMaterial color="#4a4a52" /></mesh>
-      <mesh position={[0.17, 0.35, -0.06]}><boxGeometry args={[0.05, 0.08, 0.04]} /><meshStandardMaterial color="#4a4a52" /></mesh>
-      <mesh position={[0.13, 0.09, 0.07]}><boxGeometry args={[0.06, 0.14, 0.06]} /><meshStandardMaterial color="#4a4a52" /></mesh>
-      <mesh position={[-0.13, 0.09, 0.07]}><boxGeometry args={[0.06, 0.14, 0.06]} /><meshStandardMaterial color="#4a4a52" /></mesh>
-      <group ref={tail} position={[-0.18, 0.16, 0]}><mesh position={[-0.02, 0.12, 0]}><boxGeometry args={[0.05, 0.26, 0.05]} /><meshStandardMaterial color="#5a5a62" /></mesh></group>
+    <group ref={g}>
+      {defs.map((d, i) => (
+        <mesh key={i} position={[d.x, d.y, d.z]} raycast={noRay}>
+          <boxGeometry args={[0.07, 0.07, 0.07]} /><meshBasicMaterial color="#eaff7a" />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -398,6 +377,16 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
 
   const tod = TOD[timeOfDay] || TOD.day
   const dim = weather === 'rain' ? 0.62 : weather === 'cloudy' ? 0.78 : weather === 'snow' ? 0.9 : 1
+
+  // sky life tailored to time + weather: none in rain, a bunch at sunset, fireflies at night
+  const birdCount = weather === 'rain' ? 0
+    : weather === 'snow' ? 1
+    : weather === 'cloudy' ? 2
+    : timeOfDay === 'night' ? 0
+    : timeOfDay === 'sunset' ? 6
+    : 3
+  const showPlane = weather === 'clear' && (timeOfDay === 'day' || timeOfDay === 'sunset')
+  const showFireflies = timeOfDay === 'night' && weather !== 'rain' && weather !== 'snow'
   const N = stories
   const H = N * SH // total wall height
   const floorTop = (i) => BASE_Y + i * SH
@@ -550,11 +539,11 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
       {weather === 'rain' && <Precip type="rain" />}
       {weather === 'snow' && <Precip type="snow" />}
 
-      {/* birds + a passing plane in the sky */}
-      <Bird r={6} y={5.4} speed={0.32} phase={0} onEgg={onEgg} />
-      <Bird r={5.2} y={6.0} speed={0.4} phase={2.1} onEgg={onEgg} />
-      <Bird r={6.8} y={5.0} speed={0.26} phase={4.2} onEgg={onEgg} />
-      <Plane onEgg={onEgg} />
+      {/* birds + a passing plane in the sky — tailored to time + weather */}
+      {BIRD_DEFS.slice(0, birdCount).map((b, i) => (
+        <Bird key={i} r={b.r} y={b.y} speed={b.speed} phase={b.phase} onEgg={onEgg} />
+      ))}
+      {showPlane && <Plane onEgg={onEgg} />}
 
       <Float speed={1} rotationIntensity={0} floatIntensity={0.35}>
         <group position={[0, 0, 0]}>
@@ -660,9 +649,9 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
             {mat('roof', '#6f6a60', { r: 0.6 })}
           </mesh>
 
-          {/* ---- front pergola / awning (shading) — sits below the roofline ---- */}
-          <mesh position={[0, BASE_Y + H - 0.5, 1.7]} rotation={[0.1, 0, 0]} {...pp('eaves')}>
-            <boxGeometry args={[3.5, 0.09, 0.9]} />
+          {/* ---- front eave / awning (shading) — tucks under the roof's front edge ---- */}
+          <mesh position={[0, BASE_Y + H - 0.26, 2.02]} rotation={[0.14, 0, 0]} {...pp('eaves')}>
+            <boxGeometry args={[3.75, 0.1, 0.95]} />
             {mat('eaves', C.trim, { r: 0.7 })}
           </mesh>
 
@@ -672,9 +661,8 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
           {/* ---- little pixel people (scale + life) ---- */}
           <group>{people}</group>
 
-          {/* ---- pets in the yard ---- */}
-          <Dog onEgg={onEgg} />
-          <Cat onEgg={onEgg} />
+          {/* ---- fireflies at night ---- */}
+          {showFireflies && <Fireflies />}
 
           {/* ---- tree + pots (landscaping) ---- */}
           <group position={[2.25, 0, 2.15]} {...pp('tree')}>

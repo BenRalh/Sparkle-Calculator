@@ -14,7 +14,7 @@ import {
 import {
   unlockAudio, playHover, playClick, setSfxEnabled,
   startMusic, stopMusic, disposeAudio, startRain, stopRain,
-  playSparkle, playParty,
+  playSparkle, playParty, playMumble,
 } from './audio.js'
 import './SolMate.css'
 
@@ -338,7 +338,7 @@ export default function SolMateApp() {
     factTimer.current = setTimeout(() => setFact(null), big ? 2400 : 6500)
   }
   const onBubbleClick = () => {
-    unlockAudio(); playClick()
+    unlockAudio(); playMumble()
     bubbleCount.current += 1
     if (bubbleCount.current % 3 === 0) showFact(CUTE_FACES[Math.floor(Math.random() * CUTE_FACES.length)], true)
     else showFact(FACTS[Math.floor(Math.random() * FACTS.length)])
