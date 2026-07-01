@@ -33,6 +33,36 @@ const WALL_SWATCHES = ['#e8d088', '#f0e6d2', '#d88860', '#aeb6bf', '#c2d2b4']
 const ROOF_SWATCHES = ['#8b2828', '#3a5a8b', '#4a4a52', '#2a6a4a', '#8a6a20']
 const DOOR_SWATCHES = ['#6a3010', '#2a4a6a', '#3a6a2a', '#7a3a6a', '#222428']
 
+// cute pixel-art sun logo (blocky rays + smiley)
+const SUN_GRID = [
+  '...........',
+  '.....R.....',
+  '..R.....R..',
+  '....SSS....',
+  '...SSSSS...',
+  '.R.SDSDS.R.',
+  '...SDDDS...',
+  '....SSS....',
+  '..R.....R..',
+  '.....R.....',
+  '...........',
+]
+const SUN_COLORS = { S: '#ffcf33', R: '#ff9e1b', D: '#7a4a12' }
+function PixelSun({ size = 44 }) {
+  const cells = []
+  SUN_GRID.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x]
+      if (ch !== '.') cells.push(<rect key={`${x}-${y}`} x={x * 4} y={y * 4} width="4" height="4" fill={SUN_COLORS[ch]} />)
+    }
+  })
+  return (
+    <svg width={size} height={size} viewBox="0 0 44 44" shapeRendering="crispEdges" className="sm-logo" aria-hidden="true">
+      {cells}
+    </svg>
+  )
+}
+
 // time-of-day + weather → stage sky gradient
 function skyGradient(tod, weather) {
   const base = {
@@ -108,8 +138,6 @@ export default function SolMateApp() {
   const [roofColor, setRoofColor] = useState(ROOF_SWATCHES[0])
   const [doorColor, setDoorColor] = useState(DOOR_SWATCHES[0])
   const [windowDensity, setWindowDensity] = useState(2)
-  const [neighbors, setNeighbors] = useState(false)
-  const [neighborDist, setNeighborDist] = useState(5)
 
   const [sfxOn, setSfxOn] = useState(true)
   const [musicOn, setMusicOn] = useState(false)
@@ -168,7 +196,7 @@ export default function SolMateApp() {
     setSelected(demoProject.part)
     setGround('lawn'); setTod('day'); setWeather('clear'); setStories(2)
     setWallColor(WALL_SWATCHES[0]); setRoofColor(ROOF_SWATCHES[0]); setDoorColor(DOOR_SWATCHES[0])
-    setWindowDensity(2); setNeighbors(false)
+    setWindowDensity(2)
     setQuery(''); setOpen(false)
   }
 
@@ -188,8 +216,6 @@ export default function SolMateApp() {
           roofColor={roofColor}
           doorColor={doorColor}
           windowDensity={windowDensity}
-          neighbors={neighbors}
-          neighborDist={neighborDist}
           timeOfDay={tod}
           weather={weather}
         />
@@ -197,8 +223,11 @@ export default function SolMateApp() {
 
       <aside className="sm-panel" ref={panelRef}>
         <header className="sm-brand">
-          <h1>Sol Mate <span className="sm-sun">☀️</span></h1>
-          <p className="sm-tag">Passive design, anywhere on Earth.</p>
+          <div className="sm-brand-row">
+            <PixelSun size={46} />
+            <h1>Sol Mate</h1>
+          </div>
+          <p className="sm-tag">Learn passive design by playing.</p>
         </header>
 
         <button className="sm-demo" onClick={loadDemo}>✨ Load demo project</button>
@@ -272,19 +301,6 @@ export default function SolMateApp() {
             <span className="sm-field-label">Ground</span>
             <Segmented items={groundCoverOrder.map((g) => ({ id: g, label: groundCovers[g].label }))} value={ground} onChange={setGround} />
           </div>
-          <Toggle on={neighbors} onChange={setNeighbors}>Surrounding buildings</Toggle>
-          {neighbors && (
-            <div className="sm-slider-row">
-              <span className="sm-field-label">Distance</span>
-              <input
-                className="sm-slider"
-                type="range" min="3.5" max="7" step="0.5"
-                value={neighborDist}
-                onChange={(e) => setNeighborDist(parseFloat(e.target.value))}
-              />
-              <span className="sm-slider-val">{neighborDist <= 4 ? 'Close' : neighborDist >= 6.5 ? 'Far' : 'Mid'}</span>
-            </div>
-          )}
         </div>
 
         {/* ---- Sound ---- */}
@@ -325,9 +341,10 @@ export default function SolMateApp() {
             </div>
           ) : (
             <div className="sm-empty">
-              <div className="sm-empty-big">👆</div>
-              <p>Tap a part of the house — roof, windows, walls, the sun, the ground — for passive-design advice tuned to {city.name}.</p>
-              <p className="sm-muted">Or hit ✨ Load demo project.</p>
+              <div className="sm-empty-big">👋</div>
+              <p><strong>New to passive design?</strong> It's how a building stays comfy using sun, shade and airflow — instead of leaning on aircon and heating.</p>
+              <p>Pick a city, then <strong>tap any part of the house</strong> — the sun, roof, windows, walls, ground — to learn what to do and why, right here in {city.name}.</p>
+              <p className="sm-muted">New here? Hit ✨ Load demo project to see an example.</p>
             </div>
           )}
         </div>

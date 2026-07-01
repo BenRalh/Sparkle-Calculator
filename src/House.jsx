@@ -133,7 +133,79 @@ function Clouds() {
   )
 }
 
-function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor, doorColor, windowDensity, neighbors, neighborDist, timeOfDay, weather }) {
+// ---- little pixel NPCs (Stardew-ish) ----
+const SKIN = '#f2c199'
+const PEOPLE_PALETTE = [
+  { shirt: '#e07a5f', pants: '#3d405b', hair: '#2a1a10' },
+  { shirt: '#81b29a', pants: '#4a4033', hair: '#4a2a10' },
+  { shirt: '#5b8cc4', pants: '#3d405b', hair: '#141414' },
+  { shirt: '#f2cc8f', pants: '#5a4a3a', hair: '#3a2a1a' },
+  { shirt: '#c98bb9', pants: '#3d405b', hair: '#2a1a10' },
+]
+// non-raycasting so clicks pass through to the house parts behind
+const noRay = () => null
+
+function Person({ pose = 'walk', x = 0, z = 0, baseY = 0, shirt = '#4a90d9', pants = '#3a4a5a', hair = '#3a2a1a', range = 0.8, axis = 'x', phase = 0, speed = 1 }) {
+  const g = useRef()
+  const ll = useRef(), rl = useRef(), la = useRef(), ra = useRef()
+  useFrame((state) => {
+    if (!g.current) return
+    const t = state.clock.elapsedTime * speed + phase
+    if (pose === 'walk') {
+      const tri = Math.asin(Math.sin(t * 0.7)) / (Math.PI / 2) // smooth -1..1 triangle
+      const along = tri * range
+      const forward = Math.cos(t * 0.7) >= 0
+      if (axis === 'x') {
+        g.current.position.x = x + along
+        g.current.position.z = z
+        g.current.rotation.y = forward ? Math.PI / 2 : -Math.PI / 2
+      } else {
+        g.current.position.z = z + along
+        g.current.position.x = x
+        g.current.rotation.y = forward ? 0 : Math.PI
+      }
+      const sw = Math.sin(t * 7) * 0.55
+      if (ll.current) ll.current.rotation.x = sw
+      if (rl.current) rl.current.rotation.x = -sw
+      if (la.current) la.current.rotation.x = -sw * 0.8
+      if (ra.current) ra.current.rotation.x = sw * 0.8
+      g.current.position.y = baseY + Math.abs(Math.sin(t * 7)) * 0.02
+    } else if (pose === 'sit') {
+      const idle = Math.sin(t * 1.6) * 0.06
+      if (ll.current) ll.current.rotation.x = -1.4
+      if (rl.current) rl.current.rotation.x = -1.4
+      if (la.current) la.current.rotation.x = idle
+      if (ra.current) ra.current.rotation.x = -idle
+    } else if (pose === 'sleep') {
+      const br = 1 + Math.sin(t * 1.3) * 0.045 // gentle breathing
+      g.current.scale.set(1, 1, br)
+    }
+  })
+  const staticRot = pose === 'sleep' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]
+  const leg = (ref, px) => (
+    <group ref={ref} position={[px, 0.2, 0]}>
+      <mesh position={[0, -0.1, 0]} raycast={noRay}><boxGeometry args={[0.09, 0.2, 0.09]} /><meshStandardMaterial color={pants} roughness={0.9} /></mesh>
+    </group>
+  )
+  const arm = (ref, px) => (
+    <group ref={ref} position={[px, 0.44, 0]}>
+      <mesh position={[0, -0.1, 0]} raycast={noRay}><boxGeometry args={[0.07, 0.2, 0.08]} /><meshStandardMaterial color={shirt} roughness={0.9} /></mesh>
+    </group>
+  )
+  return (
+    <group ref={g} position={[x, baseY, z]} rotation={staticRot}>
+      {leg(ll, -0.06)}
+      {leg(rl, 0.06)}
+      <mesh position={[0, 0.34, 0]} raycast={noRay}><boxGeometry args={[0.26, 0.26, 0.15]} /><meshStandardMaterial color={shirt} roughness={0.9} /></mesh>
+      {arm(la, -0.16)}
+      {arm(ra, 0.16)}
+      <mesh position={[0, 0.6, 0]} raycast={noRay}><boxGeometry args={[0.2, 0.2, 0.2]} /><meshStandardMaterial color={SKIN} roughness={0.85} /></mesh>
+      <mesh position={[0, 0.69, -0.01]} raycast={noRay}><boxGeometry args={[0.22, 0.09, 0.22]} /><meshStandardMaterial color={hair} roughness={0.9} /></mesh>
+    </group>
+  )
+}
+
+function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor, doorColor, windowDensity, timeOfDay, weather }) {
   const [hover, setHover] = useState(null)
   useEffect(() => {
     document.body.style.cursor = hover ? 'pointer' : 'auto'
@@ -235,34 +307,32 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
     )
   }
 
-  // neighbour buildings (pixel blocks at adjustable distance)
-  const neighbourBlocks = []
-  if (neighbors) {
-    const d = neighborDist
-    const spots = [
-      { x: d, z: -0.5, h: 2.6, c: '#9a8d7a' },
-      { x: -d, z: 0.8, h: 3.4, c: '#8a8470' },
-      { x: 0.5, z: -d, h: 2.2, c: '#a09480' },
-      { x: -0.8, z: d, h: 3.0, c: '#94886f' },
-    ]
-    spots.forEach((s, i) => {
-      neighbourBlocks.push(
-        <group key={'nb' + i} position={[s.x, 0, s.z]}>
-          <mesh position={[0, s.h / 2 - 0.3, 0]}>
-            <boxGeometry args={[1.6, s.h, 1.6]} />
-            <meshStandardMaterial color={s.c} roughness={0.95} emissive={glowI > 0 ? '#3a3020' : '#000'} emissiveIntensity={glowI > 0 ? 0.15 : 0} />
-          </mesh>
-          {/* a couple of pixel windows */}
-          {[0.4, -0.2].map((wy, j) => (
-            <mesh key={j} position={[0, s.h * 0.5 + wy, 0.81]}>
-              <boxGeometry args={[0.9, 0.4, 0.05]} />
-              <meshStandardMaterial color={glowI > 0 ? '#ffce7a' : '#6f97b5'} emissive={glowI > 0 ? '#ffae40' : '#000'} emissiveIntensity={glowI > 0 ? 0.6 : 0} />
-            </mesh>
-          ))}
-        </group>,
-      )
-    })
+  // ---- little pixel people (NPCs) per floor: scale + life ----
+  const people = []
+  const addFloorPeople = (i) => {
+    const fy = floorTop(i)
+    const isTop = i === N - 1 && N >= 2
+    const a = PEOPLE_PALETTE[(i * 3) % PEOPLE_PALETTE.length]
+    const b = PEOPLE_PALETTE[(i * 3 + 1) % PEOPLE_PALETTE.length]
+    const c = PEOPLE_PALETTE[(i * 3 + 2) % PEOPLE_PALETTE.length]
+    if (i === 0) {
+      // ground: two wandering, one on the sofa
+      people.push(<Person key={`p${i}a`} pose="walk" axis="x" x={0.15} z={-0.15} range={0.9} baseY={fy} {...a} phase={0} />)
+      people.push(<Person key={`p${i}b`} pose="walk" axis="z" x={-0.45} z={0.45} range={0.7} baseY={fy} {...b} phase={2.4} speed={0.9} />)
+      people.push(<Person key={`p${i}c`} pose="sit" x={0.6} z={1.12} baseY={fy + 0.26} {...c} phase={1.2} />)
+    } else if (isTop) {
+      // bedroom: one asleep, one wandering, one sitting
+      people.push(<Person key={`p${i}a`} pose="sleep" x={-0.55} z={-1.22} baseY={fy + 0.5} {...a} phase={0.5} />)
+      people.push(<Person key={`p${i}b`} pose="walk" axis="x" x={0.5} z={0.4} range={0.7} baseY={fy} {...b} phase={1.8} />)
+      people.push(<Person key={`p${i}c`} pose="sit" x={0.85} z={0.15} baseY={fy} {...c} phase={3} />)
+    } else {
+      // middle floor: reading + wandering
+      people.push(<Person key={`p${i}a`} pose="sit" x={0.0} z={0.0} baseY={fy + 0.4} {...a} phase={0.7} />)
+      people.push(<Person key={`p${i}b`} pose="walk" axis="x" x={0.3} z={-0.6} range={0.8} baseY={fy} {...b} phase={2.1} speed={1.05} />)
+      people.push(<Person key={`p${i}c`} pose="walk" axis="z" x={-0.7} z={0.3} range={0.6} baseY={fy} {...c} phase={3.6} speed={0.85} />)
+    }
   }
+  for (let i = 0; i < N; i++) addFloorPeople(i)
 
   return (
     <>
@@ -303,7 +373,6 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
             {mat('ground', '#8d8474', { r: 0.95 })}
           </mesh>
 
-          {neighbourBlocks}
 
           {/* ---- floor slabs (one per storey) ---- */}
           <mesh position={[0, 0.09, 0]} {...pp('floor')}>
@@ -379,6 +448,9 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
 
           {/* ---- furniture (zoning) ---- */}
           <group {...pp('zoning')}>{furniture}</group>
+
+          {/* ---- little pixel people (scale + life) ---- */}
+          <group>{people}</group>
 
           {/* ---- tree + pots (landscaping) ---- */}
           <group position={[2.25, 0, 2.15]} {...pp('tree')}>

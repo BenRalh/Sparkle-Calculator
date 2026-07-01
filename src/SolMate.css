@@ -75,6 +75,12 @@ body {
 .sm-panel::-webkit-scrollbar-thumb { background: #d2d2d7; border-radius: 8px; }
 
 /* ---------- brand ---------- */
+.sm-brand-row { display: flex; align-items: center; gap: 12px; }
+.sm-logo {
+  display: block; flex: 0 0 auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12));
+}
 .sm-brand h1 {
   font-weight: 800;
   font-size: 2rem;
@@ -82,7 +88,7 @@ body {
   margin: 0;
   color: #1d1d1f;
 }
-.sm-tag { margin: 4px 0 0; color: #86868b; font-weight: 500; font-size: 0.95rem; }
+.sm-tag { margin: 6px 0 0; color: #86868b; font-weight: 500; font-size: 0.95rem; }
 
 /* ---------- load demo (Apple blue) ---------- */
 .sm-demo {
