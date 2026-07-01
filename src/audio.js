@@ -22,6 +22,12 @@ function ac() {
   return ctx
 }
 
+// For ambient/game sounds triggered from the render loop: never CREATE the
+// context (that needs a gesture) — only play if it is already running.
+function acRunning() {
+  return ctx && ctx.state === 'running' ? ctx : null
+}
+
 // Call on the first user gesture so audio is unlocked for later SFX.
 export function unlockAudio() {
   try { ac() } catch (e) { /* no audio support */ }
@@ -133,7 +139,100 @@ export function stopMusic() {
   }
 }
 
+// ---- 8-bit game sound effects (triggered from the 3D scene) ----
+
+// soft blip when hovering a house part
+let lastTick = 0
+export function playTick() {
+  if (!sfxOn) return
+  const c = acRunning()
+  if (!c || c.currentTime - lastTick < 0.06) return
+  lastTick = c.currentTime
+  const t = c.currentTime
+  const o = c.createOscillator()
+  const g = c.createGain()
+  o.type = 'square'
+  o.frequency.setValueAtTime(1500, t)
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.03, t + 0.005)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05)
+  o.connect(g); g.connect(sfxBus)
+  o.start(t); o.stop(t + 0.06)
+}
+
+// little chirp when a speech bubble pops (NPC chatter)
+export function playBlip() {
+  if (!sfxOn) return
+  const c = acRunning()
+  if (!c) return
+  const t = c.currentTime
+  const f = 480 + Math.random() * 420
+  const o = c.createOscillator()
+  const g = c.createGain()
+  o.type = 'square'
+  o.frequency.setValueAtTime(f, t)
+  o.frequency.setValueAtTime(f * 1.25, t + 0.05)
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.045, t + 0.01)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.11)
+  o.connect(g); g.connect(sfxBus)
+  o.start(t); o.stop(t + 0.12)
+}
+
+// very soft footstep, globally throttled so a crowd doesn't machine-gun
+let lastStep = 0
+export function playFootstep() {
+  if (!sfxOn) return
+  const c = acRunning()
+  if (!c || c.currentTime - lastStep < 0.17) return
+  lastStep = c.currentTime
+  const t = c.currentTime
+  const o = c.createOscillator()
+  const g = c.createGain()
+  o.type = 'triangle'
+  o.frequency.setValueAtTime(150, t)
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.02, t + 0.004)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06)
+  o.connect(g); g.connect(sfxBus)
+  o.start(t); o.stop(t + 0.07)
+}
+
+// looping rain: filtered white noise
+let rainNodes = null
+export function startRain() {
+  if (!sfxOn) return
+  const c = acRunning() || ac()
+  if (!c || rainNodes) return
+  const buf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+  const src = c.createBufferSource()
+  src.buffer = buf
+  src.loop = true
+  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 420
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = 0.3
+  const g = c.createGain(); g.gain.value = 0.0001
+  src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(c.destination)
+  src.start()
+  g.gain.linearRampToValueAtTime(0.085, c.currentTime + 1.2)
+  rainNodes = { src, g }
+}
+export function stopRain() {
+  if (!rainNodes || !ctx) return
+  const { src, g } = rainNodes
+  rainNodes = null
+  const now = ctx.currentTime
+  try {
+    g.gain.cancelScheduledValues(now)
+    g.gain.setValueAtTime(g.gain.value, now)
+    g.gain.linearRampToValueAtTime(0.0001, now + 0.7)
+    src.stop(now + 0.8)
+  } catch (e) { /* ignore */ }
+}
+
 export function disposeAudio() {
   stopMusic()
+  stopRain()
   if (ctx) { try { ctx.close() } catch (e) { /* ignore */ } ctx = null }
 }

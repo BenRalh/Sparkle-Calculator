@@ -381,11 +381,69 @@ body {
 .sm-tut-next:hover { background: #0077ed; }
 .sm-tut-next:active { transform: scale(0.98); }
 
+/* ---------- floating game controls ---------- */
+.sm-tools {
+  position: absolute; z-index: 4; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: flex; gap: 10px; padding: 8px;
+  background: rgba(255, 255, 255, 0.66); backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-radius: 18px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+}
+.sm-tool-wrap { position: relative; }
+.sm-tool {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: none; cursor: pointer; background: transparent; border-radius: 12px;
+  padding: 8px 12px; font-family: inherit; color: #1d1d1f; transition: background 0.15s, transform 0.1s;
+}
+.sm-tool span { font-size: 1.3rem; line-height: 1; }
+.sm-tool em { font-style: normal; font-size: 0.68rem; font-weight: 600; color: #424245; }
+.sm-tool:hover { background: rgba(0, 0, 0, 0.05); }
+.sm-tool:active { transform: scale(0.94); }
+.sm-tool.on { background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14); }
+
+.sm-pop {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  background: #fff; border-radius: 14px; padding: 6px; min-width: 150px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex; flex-direction: column; gap: 2px; animation: sm-pop 0.16s ease;
+}
+.sm-pop::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 7px solid transparent; border-top-color: #fff;
+}
+.sm-pop-item {
+  border: none; background: none; cursor: pointer; text-align: left;
+  padding: 9px 11px; border-radius: 9px; font-family: inherit; font-size: 0.92rem; font-weight: 500; color: #1d1d1f;
+  transition: background 0.13s;
+}
+.sm-pop-item:hover { background: #f0f0f3; }
+.sm-pop-item.on { background: #eef4fb; color: #0071e3; font-weight: 600; }
+.sm-pop-sound { min-width: 190px; padding: 10px 12px; gap: 8px; }
+
+/* ---------- part diagram + learning extras ---------- */
+.sm-diagram-wrap { margin-bottom: 15px; }
+.sm-diagram { width: 100%; height: auto; display: block; border-radius: 12px; background: #f5f8fb; border: 1px solid #eceff3; }
+.sm-diagram-cap { margin: 7px 2px 0; font-size: 0.82rem; line-height: 1.4; color: #6e6e73; }
+.sm-plain { border-left-color: #ffb703; background: #fff8e8; border-radius: 0 12px 12px 0; padding: 10px 13px; }
+.sm-plain h3 { color: #b07a10; }
+.sm-plain p { font-size: 0.95rem; }
+
+.sm-links { margin-top: 4px; padding-top: 12px; border-top: 1px solid #ececef; }
+.sm-links h3 { margin: 0 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #86868b; font-weight: 700; }
+.sm-links a {
+  display: block; padding: 8px 11px; margin-bottom: 6px; border-radius: 10px;
+  background: #f0f0f3; color: #0071e3; text-decoration: none; font-size: 0.88rem; font-weight: 500;
+  transition: background 0.14s;
+}
+.sm-links a:hover { background: #e6f0fb; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 860px) {
   .sm-app { flex-direction: column; }
-  .sm-stage { flex: none; height: 44vh; }
+  .sm-stage { flex: none; height: 46vh; }
   .sm-panel { width: 100%; flex: 1 1 auto; box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.08); }
+  .sm-tools { bottom: 10px; gap: 4px; padding: 6px; }
+  .sm-tool { padding: 7px 9px; }
 }
 @media (max-width: 520px) {
   .sm-hint { display: none; }

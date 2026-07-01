@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Float } from '@react-three/drei'
+import { OrbitControls, Float, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
+import { playTick, playBlip, playFootstep } from './audio.js'
 
 const HL = '#f8d030' // pixel gold highlight
 
@@ -146,6 +147,9 @@ function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
   const ll = useRef(), rl = useRef(), la = useRef(), ra = useRef()
   const st = useRef(null)
 
+  const bubble = useRef()
+  const spoke = useRef(false)
+
   const setLimbs = (a, b, c, d) => {
     if (ll.current) ll.current.rotation.x = a
     if (rl.current) rl.current.rotation.x = b
@@ -159,14 +163,8 @@ function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
       g.current.position.set(station.pos[0], baseY + (station.yOff ?? 0.52), station.pos[1])
       g.current.scale.set(1, 1, 1 + Math.sin(t * 1.3) * 0.04)
       setLimbs(-0.08, -0.08, 0.06, -0.06)
-    } else if (station.pose === 'sit') {
-      g.current.rotation.set(0, ry, 0)
-      g.current.position.set(station.pos[0], baseY + (station.yOff ?? 0.2), station.pos[1])
-      g.current.scale.set(1, 1, 1)
-      const idle = Math.sin(t * 1.6) * 0.05
-      setLimbs(-1.45, -1.45, idle, -idle)
     } else {
-      // idle / stand / chat
+      // idle / stand / chat (no sitting — it never lines up with furniture)
       g.current.rotation.set(0, ry, 0)
       g.current.position.set(station.pos[0], baseY, station.pos[1])
       g.current.scale.set(1, 1, 1)
@@ -184,6 +182,7 @@ function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
     }
     const s = st.current
     const station = schedule[s.i]
+    let talking = false
     if (s.mode === 'walk') {
       const [tx, tz] = station.pos
       const dx = tx - s.pos[0], dz = tz - s.pos[1]
@@ -197,15 +196,23 @@ function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
         g.current.position.set(s.pos[0], baseY + Math.abs(Math.sin(t * 8)) * 0.02, s.pos[1])
         const sw = Math.sin(t * 8) * 0.5
         setLimbs(sw, -sw, -sw * 0.8, sw * 0.8)
+        playFootstep()
       } else {
         s.mode = 'dwell'; s.modeStart = t
       }
     } else {
       dwellPose(station, t)
+      // chat: pop a speech bubble now and then while standing/idle
+      talking = station.pose === 'idle' && (((t + startAt * 1.4) % 6.5) < 2.1)
       if (t - s.modeStart > (station.dwell ?? 3)) {
         s.i = (s.i + 1) % schedule.length
         s.mode = 'walk'
       }
+    }
+    if (bubble.current && talking !== spoke.current) {
+      spoke.current = talking
+      bubble.current.visible = talking
+      if (talking) playBlip()
     }
   })
 
@@ -234,6 +241,17 @@ function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
       {gender === 'f' && (
         <mesh position={[0, 0.5, -0.085]} raycast={noRay}><boxGeometry args={[0.22, 0.3, 0.09]} /><meshStandardMaterial color={palette.hair} roughness={0.9} /></mesh>
       )}
+      {/* speech bubble (billboarded, hidden until chatting) */}
+      <Billboard position={[0.12, 1.02, 0]}>
+        <group ref={bubble} visible={false}>
+          <mesh position={[0, 0, -0.002]} raycast={noRay}><planeGeometry args={[0.44, 0.3]} /><meshBasicMaterial color="#2a2a30" /></mesh>
+          <mesh raycast={noRay}><planeGeometry args={[0.4, 0.26]} /><meshBasicMaterial color="#ffffff" /></mesh>
+          {[-0.1, 0, 0.1].map((dx, i) => (
+            <mesh key={i} position={[dx, 0, 0.002]} raycast={noRay}><planeGeometry args={[0.05, 0.05]} /><meshBasicMaterial color="#5a5a62" /></mesh>
+          ))}
+          <mesh position={[-0.12, -0.19, 0]} raycast={noRay}><planeGeometry args={[0.09, 0.1]} /><meshBasicMaterial color="#ffffff" /></mesh>
+        </group>
+      </Billboard>
     </group>
   )
 }
@@ -253,7 +271,7 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
   }, [hover])
 
   const pp = (id) => ({
-    onPointerOver: (e) => { e.stopPropagation(); setHover(id) },
+    onPointerOver: (e) => { e.stopPropagation(); setHover(id); playTick() },
     onPointerOut: (e) => { e.stopPropagation(); setHover((h) => (h === id ? null : h)) },
     onClick: (e) => { e.stopPropagation(); onSelect(id) },
   })
@@ -364,16 +382,16 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
     const col = COUPLES[i % COUPLES.length]
     let girl, guy
     if (i === 0) {
-      // ground floor: kitchen + dining + lounge. They cross paths and chat.
+      // ground floor: they wander the kitchen / lounge and stop to chat.
       guy = [
-        { pos: [0.6, 1.15], pose: 'sit', rotY: Math.PI, yOff: 0.2, dwell: 6 }, // on the sofa, facing into the room
-        { pos: [0.0, 0.3], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 },        // chat, facing the girl (−X)
-        { pos: [-0.7, -0.5], pose: 'idle', rotY: 0, dwell: 3 },                 // by the kitchen
+        { pos: [0.0, 0.3], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 },  // chat, facing the girl (−X)
+        { pos: [0.6, 1.0], pose: 'idle', rotY: Math.PI, dwell: 3 },        // by the lounge
+        { pos: [-0.7, -0.5], pose: 'idle', rotY: 0, dwell: 3 },            // by the kitchen
       ]
       girl = [
-        { pos: [0.95, 0.05], pose: 'sit', rotY: Math.PI, yOff: 0.22, dwell: 5 }, // dining chair, facing the table
-        { pos: [0.42, 0.3], pose: 'idle', rotY: Math.PI / 2, dwell: 4 },         // chat, facing the guy (+X)
-        { pos: [-0.5, -0.2], pose: 'idle', rotY: 0, dwell: 3 },                  // wander to kitchen
+        { pos: [0.42, 0.3], pose: 'idle', rotY: Math.PI / 2, dwell: 4 },   // chat, facing the guy (+X)
+        { pos: [0.95, -0.1], pose: 'idle', rotY: Math.PI, dwell: 3 },      // by the dining table
+        { pos: [-0.5, -0.2], pose: 'idle', rotY: 0, dwell: 3 },            // wander to kitchen
       ]
     } else if (isTop) {
       // bedroom: one sleeps, they meet in the middle. Kept central for roof clearance.
@@ -383,14 +401,14 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
         { pos: [-0.4, 0.2], pose: 'idle', rotY: 0, dwell: 3 },
       ]
       guy = [
-        { pos: [0.55, 0.2], pose: 'sit', rotY: -Math.PI / 2, yOff: 0.0, dwell: 5 }, // sitting on the floor
-        { pos: [-0.15, 0.35], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 },          // chatting
+        { pos: [0.55, 0.2], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 },
+        { pos: [-0.15, 0.35], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 }, // chatting
         { pos: [0.5, -0.2], pose: 'idle', rotY: Math.PI, dwell: 3 },
       ]
     } else {
-      // middle floor: reading nook + wandering
+      // middle floor: wandering + chatting
       girl = [
-        { pos: [0.0, 0.0], pose: 'sit', rotY: Math.PI, yOff: 0.28, dwell: 5 },
+        { pos: [0.0, 0.0], pose: 'idle', rotY: Math.PI, dwell: 4 },
         { pos: [0.3, 0.4], pose: 'idle', rotY: Math.PI / 2, dwell: 4 },
         { pos: [-0.6, -0.3], pose: 'idle', rotY: 0, dwell: 3 },
       ]
@@ -510,9 +528,10 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
             <boxGeometry args={[3.95, 0.14, 2.3]} />
             {mat('roof', roofColor, { r: 0.7 })}
           </mesh>
-          <mesh position={[-1.0, BASE_Y + H + 0.6, -0.5]} {...pp('roof')}>
-            <boxGeometry args={[0.34, 0.6, 0.34]} />
-            {mat('roof', roofColor, { r: 0.8 })}
+          {/* chimney straddles the ridge so it pokes out the top (not through the slope) */}
+          <mesh position={[-0.9, BASE_Y + H + 1.25, 0]} {...pp('roof')}>
+            <boxGeometry args={[0.32, 0.85, 0.32]} />
+            {mat('roof', '#8a6a5a', { r: 0.85 })}
           </mesh>
           {/* gutters along both eaves */}
           {[1.9, -1.9].map((gz, i) => (
@@ -527,9 +546,9 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
             {mat('roof', '#6f6a60', { r: 0.6 })}
           </mesh>
 
-          {/* ---- eaves over upper front ---- */}
-          <mesh position={[0, BASE_Y + H, 1.55]} rotation={[0.12, 0, 0]} {...pp('eaves')}>
-            <boxGeometry args={[3.7, 0.1, 1.0]} />
+          {/* ---- front pergola / awning (shading) — sits below the roofline ---- */}
+          <mesh position={[0, BASE_Y + H - 0.5, 1.7]} rotation={[0.1, 0, 0]} {...pp('eaves')}>
+            <boxGeometry args={[3.5, 0.09, 0.9]} />
             {mat('eaves', C.trim, { r: 0.7 })}
           </mesh>
 
