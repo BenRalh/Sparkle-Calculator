@@ -4,8 +4,6 @@ import {
   climates,
   parts,
   cities,
-  groundCovers,
-  groundCoverOrder,
   hemisphereOf,
   equatorDir,
   applyDir,
@@ -29,9 +27,18 @@ const WEATHERS = [
   { id: 'rain', label: 'Rain', icon: '🌧️' },
   { id: 'snow', label: 'Snow', icon: '❄️' },
 ]
-const WALL_SWATCHES = ['#e8d088', '#f0e6d2', '#d88860', '#aeb6bf', '#c2d2b4']
-const ROOF_SWATCHES = ['#8b2828', '#3a5a8b', '#4a4a52', '#2a6a4a', '#8a6a20']
-const DOOR_SWATCHES = ['#6a3010', '#2a4a6a', '#3a6a2a', '#7a3a6a', '#222428']
+
+// big shared colour palette for every customizable material
+const PALETTE = [
+  '#f0e6d2', '#e8d088', '#d8b06a', '#c98a4b', '#a86a3a', '#7a4a24', '#5a3a1e',
+  '#f2a65a', '#e07a3a', '#b8442e', '#8b2828', '#e8788f', '#c85a72', '#8a3a52',
+  '#b7d6a8', '#7ab89a', '#4f8a56', '#2a6a4a', '#1f4a38',
+  '#9fc4e8', '#5b8cc4', '#3a6aa8', '#2a4a6a', '#22324a',
+  '#c98bc0', '#8a5a86', '#6a3a6a',
+  '#e6e6ea', '#b0b0b8', '#7a7a82', '#4a4a52', '#2a2a30', '#1d1d1f',
+  '#d8d3cb', '#8fce6a', '#5aa03a',
+]
+const DEF = { wall: '#e8d088', roof: '#8b2828', door: '#6a3a1a', floor: '#b07830', ground: '#8fce6a' }
 
 // cute pixel-art sun logo (blocky rays + smiley)
 const SUN_GRID = [
@@ -83,11 +90,7 @@ function Segmented({ items, value, onChange }) {
   return (
     <div className="sm-seg">
       {items.map((it) => (
-        <button
-          key={it.id}
-          className={`sm-seg-btn${value === it.id ? ' on' : ''}`}
-          onClick={() => onChange(it.id)}
-        >
+        <button key={it.id} className={`sm-seg-btn${value === it.id ? ' on' : ''}`} onClick={() => onChange(it.id)}>
           {it.icon && <span className="sm-seg-ico">{it.icon}</span>}
           {it.label}
         </button>
@@ -96,15 +99,15 @@ function Segmented({ items, value, onChange }) {
   )
 }
 
-function Swatches({ colors, value, onChange, label }) {
+function Palette({ label, value, onChange }) {
   return (
-    <div className="sm-swatch-row">
-      <span className="sm-swatch-label">{label}</span>
-      <div className="sm-swatches">
-        {colors.map((c) => (
+    <div className="sm-pal">
+      <span className="sm-field-label">{label}</span>
+      <div className="sm-pal-grid">
+        {PALETTE.map((c) => (
           <button
             key={c}
-            className={`sm-swatch${value === c ? ' on' : ''}`}
+            className={`sm-pal-sw${value === c ? ' on' : ''}`}
             style={{ background: c }}
             onClick={() => onChange(c)}
             aria-label={`${label} ${c}`}
@@ -125,24 +128,28 @@ function Toggle({ on, onChange, children }) {
 }
 
 export default function SolMateApp() {
+  const [intro, setIntro] = useState('logo') // 'logo' → 'tutorial' → 'done'
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+
   const [cityName, setCityName] = useState('Melbourne')
   const [selected, setSelected] = useState(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
 
-  const [ground, setGround] = useState('lawn')
   const [tod, setTod] = useState('day')
   const [weather, setWeather] = useState('clear')
   const [stories, setStories] = useState(2)
-  const [wallColor, setWallColor] = useState(WALL_SWATCHES[0])
-  const [roofColor, setRoofColor] = useState(ROOF_SWATCHES[0])
-  const [doorColor, setDoorColor] = useState(DOOR_SWATCHES[0])
   const [windowDensity, setWindowDensity] = useState(2)
+  const [wallColor, setWallColor] = useState(DEF.wall)
+  const [roofColor, setRoofColor] = useState(DEF.roof)
+  const [doorColor, setDoorColor] = useState(DEF.door)
+  const [floorColor, setFloorColor] = useState(DEF.floor)
+  const [groundColor, setGroundColor] = useState(DEF.ground)
 
   const [sfxOn, setSfxOn] = useState(true)
   const [musicOn, setMusicOn] = useState(false)
 
-  const panelRef = useRef(null)
+  const rootRef = useRef(null)
 
   const city = findCity(cityName) || cities[0]
   const climate = climates[city.climate]
@@ -160,9 +167,9 @@ export default function SolMateApp() {
 
   const sky = skyGradient(tod, weather)
 
-  // --- audio: unlock on first gesture, play UI sounds via delegation ---
+  // --- audio: play UI sounds via delegation across the whole app ---
   useEffect(() => {
-    const el = panelRef.current
+    const el = rootRef.current
     if (!el) return
     let last = null
     const onOver = (e) => {
@@ -176,12 +183,9 @@ export default function SolMateApp() {
     }
     el.addEventListener('mouseover', onOver)
     el.addEventListener('pointerdown', onDown)
-    const unlockOnce = () => unlockAudio()
-    window.addEventListener('pointerdown', unlockOnce, { once: true })
     return () => {
       el.removeEventListener('mouseover', onOver)
       el.removeEventListener('pointerdown', onDown)
-      window.removeEventListener('pointerdown', unlockOnce)
     }
   }, [])
 
@@ -194,14 +198,17 @@ export default function SolMateApp() {
   const loadDemo = () => {
     setCityName(demoProject.cityName)
     setSelected(demoProject.part)
-    setGround('lawn'); setTod('day'); setWeather('clear'); setStories(2)
-    setWallColor(WALL_SWATCHES[0]); setRoofColor(ROOF_SWATCHES[0]); setDoorColor(DOOR_SWATCHES[0])
-    setWindowDensity(2)
+    setTod('day'); setWeather('clear'); setStories(2); setWindowDensity(2)
+    setWallColor(DEF.wall); setRoofColor(DEF.roof); setDoorColor(DEF.door)
+    setFloorColor(DEF.floor); setGroundColor(DEF.ground)
     setQuery(''); setOpen(false)
   }
 
+  const startTutorial = () => { unlockAudio(); playClick(); setIntro('tutorial') }
+  const startApp = () => { playClick(); setIntro('done') }
+
   return (
-    <div className="sm-app">
+    <div className="sm-app" ref={rootRef}>
       <section className="sm-stage" style={{ background: `linear-gradient(170deg, ${sky[0]}, ${sky[1]})` }}>
         <div className={`sm-stars${tod !== 'day' ? ' on' : ''}`} />
         <div className="sm-hint">🖐️ Drag to orbit · 👆 Tap any part of the house</div>
@@ -210,7 +217,8 @@ export default function SolMateApp() {
           selected={selected}
           onSelect={selectPart}
           lat={city.lat}
-          ground={ground}
+          groundColor={groundColor}
+          floorColor={floorColor}
           stories={stories}
           wallColor={wallColor}
           roofColor={roofColor}
@@ -221,7 +229,7 @@ export default function SolMateApp() {
         />
       </section>
 
-      <aside className="sm-panel" ref={panelRef}>
+      <aside className="sm-panel">
         <header className="sm-brand">
           <div className="sm-brand-row">
             <PixelSun size={46} />
@@ -283,25 +291,8 @@ export default function SolMateApp() {
           <div className="sm-field"><span className="sm-field-label">Weather</span><Segmented items={WEATHERS} value={weather} onChange={setWeather} /></div>
         </div>
 
-        {/* ---- Customize ---- */}
-        <div className="sm-block">
-          <div className="sm-block-title">Customize the house</div>
-          <div className="sm-field">
-            <span className="sm-field-label">Storeys</span>
-            <Segmented items={[{ id: 1, label: '1' }, { id: 2, label: '2' }, { id: 3, label: '3' }]} value={stories} onChange={setStories} />
-          </div>
-          <div className="sm-field">
-            <span className="sm-field-label">Windows</span>
-            <Segmented items={[{ id: 1, label: 'Few' }, { id: 2, label: 'Some' }, { id: 3, label: 'Many' }]} value={windowDensity} onChange={setWindowDensity} />
-          </div>
-          <Swatches colors={WALL_SWATCHES} value={wallColor} onChange={setWallColor} label="Walls" />
-          <Swatches colors={ROOF_SWATCHES} value={roofColor} onChange={setRoofColor} label="Roof" />
-          <Swatches colors={DOOR_SWATCHES} value={doorColor} onChange={setDoorColor} label="Door" />
-          <div className="sm-field">
-            <span className="sm-field-label">Ground</span>
-            <Segmented items={groundCoverOrder.map((g) => ({ id: g, label: groundCovers[g].label }))} value={ground} onChange={setGround} />
-          </div>
-        </div>
+        {/* ---- Customize (opens drawer) ---- */}
+        <button className="sm-open-customize" onClick={() => setCustomizeOpen(true)}>🎨 Customize the house</button>
 
         {/* ---- Sound ---- */}
         <div className="sm-block">
@@ -353,6 +344,73 @@ export default function SolMateApp() {
           Powered by the <strong>Sol Mate</strong> passive-design skill. Advice is a starting point — not a substitute for a thermal model, local code, or your own design judgement.
         </footer>
       </aside>
+
+      {/* ---- Customize drawer (hidden until opened) ---- */}
+      {customizeOpen && (
+        <>
+          <div className="sm-drawer-backdrop" onClick={() => setCustomizeOpen(false)} />
+          <div className="sm-drawer" role="dialog" aria-label="Customize the house">
+            <div className="sm-drawer-head">
+              <h2>🎨 Customize the house</h2>
+              <button className="sm-drawer-close" onClick={() => setCustomizeOpen(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="sm-drawer-body">
+              <div className="sm-field">
+                <span className="sm-field-label">Storeys</span>
+                <Segmented items={[{ id: 1, label: '1' }, { id: 2, label: '2' }, { id: 3, label: '3' }]} value={stories} onChange={setStories} />
+              </div>
+              <div className="sm-field">
+                <span className="sm-field-label">Windows</span>
+                <Segmented items={[{ id: 1, label: 'Few' }, { id: 2, label: 'Some' }, { id: 3, label: 'Many' }]} value={windowDensity} onChange={setWindowDensity} />
+              </div>
+              <Palette label="Walls" value={wallColor} onChange={setWallColor} />
+              <Palette label="Roof" value={roofColor} onChange={setRoofColor} />
+              <Palette label="Door" value={doorColor} onChange={setDoorColor} />
+              <Palette label="Floors" value={floorColor} onChange={setFloorColor} />
+              <Palette label="Ground" value={groundColor} onChange={setGroundColor} />
+            </div>
+            <button className="sm-drawer-done" onClick={() => setCustomizeOpen(false)}>Done</button>
+          </div>
+        </>
+      )}
+
+      {/* ---- Intro: big logo → tutorial → start ---- */}
+      {intro !== 'done' && (
+        <div className="sm-intro">
+          {intro === 'logo' ? (
+            <button className="sm-splash" onClick={startTutorial} aria-label="Start Sol Mate">
+              <div className="sm-splash-sun"><PixelSun size={150} /></div>
+              <h1 className="sm-splash-title">Sol Mate</h1>
+              <p className="sm-splash-sub">Learn passive design by playing</p>
+              <span className="sm-splash-cta">▶ Click to start</span>
+            </button>
+          ) : (
+            <div className="sm-tut">
+              <div className="sm-tut-logo"><PixelSun size={64} /></div>
+              <h2>How Sol Mate works</h2>
+              <p className="sm-tut-lead">
+                <strong>Passive design</strong> keeps a building comfy using the sun, shade and airflow —
+                instead of leaning on aircon and heating. Here's how to explore it:
+              </p>
+              <ol className="sm-tut-steps">
+                <li><span className="sm-tut-ico">🌍</span><div><strong>Pick a place</strong><span>Search any city — the sun and climate update to match it.</span></div></li>
+                <li><span className="sm-tut-ico">👆</span><div><strong>Tap the house</strong><span>Click the sun, roof, windows or walls for tips made for that spot.</span></div></li>
+                <li><span className="sm-tut-ico">💡</span><div><strong>Learn the why</strong><span>Each part tells you what to do and the reason behind it.</span></div></li>
+                <li><span className="sm-tut-ico">🎨</span><div><strong>Play around</strong><span>Change time, weather, storeys and colours — it all updates live.</span></div></li>
+              </ol>
+              <div className="sm-tut-demo">
+                <div className="sm-tut-house">
+                  <div className="sm-tut-roof" />
+                  <div className="sm-tut-body" />
+                  <span className="sm-tut-cursor">👆</span>
+                </div>
+                <span className="sm-tut-demo-cap">…tap a part to learn about it</span>
+              </div>
+              <button className="sm-tut-next" onClick={startApp}>Start playing →</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

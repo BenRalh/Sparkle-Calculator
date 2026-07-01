@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Float } from '@react-three/drei'
 import * as THREE from 'three'
-import { groundCovers } from './passiveData.js'
 
 const HL = '#f8d030' // pixel gold highlight
 
@@ -133,79 +132,120 @@ function Clouds() {
   )
 }
 
-// ---- little pixel NPCs (Stardew-ish) ----
+// ---- little pixel NPCs (Stardew-ish, schedule-driven) ----
 const SKIN = '#f2c199'
-const PEOPLE_PALETTE = [
-  { shirt: '#e07a5f', pants: '#3d405b', hair: '#2a1a10' },
-  { shirt: '#81b29a', pants: '#4a4033', hair: '#4a2a10' },
-  { shirt: '#5b8cc4', pants: '#3d405b', hair: '#141414' },
-  { shirt: '#f2cc8f', pants: '#5a4a3a', hair: '#3a2a1a' },
-  { shirt: '#c98bb9', pants: '#3d405b', hair: '#2a1a10' },
-]
 // non-raycasting so clicks pass through to the house parts behind
 const noRay = () => null
 
-function Person({ pose = 'walk', x = 0, z = 0, baseY = 0, shirt = '#4a90d9', pants = '#3a4a5a', hair = '#3a2a1a', range = 0.8, axis = 'x', phase = 0, speed = 1 }) {
+// A Person walks between "stations" and performs each station's pose for `dwell`
+// seconds, then moves on — so every person cycles through walking / sitting /
+// sleeping / chatting. Stations with matching positions on a floor let two
+// people meet and face each other.
+function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
   const g = useRef()
   const ll = useRef(), rl = useRef(), la = useRef(), ra = useRef()
-  useFrame((state) => {
+  const st = useRef(null)
+
+  const setLimbs = (a, b, c, d) => {
+    if (ll.current) ll.current.rotation.x = a
+    if (rl.current) rl.current.rotation.x = b
+    if (la.current) la.current.rotation.x = c
+    if (ra.current) ra.current.rotation.x = d
+  }
+  const dwellPose = (station, t) => {
+    const ry = station.rotY ?? 0
+    if (station.pose === 'sleep') {
+      g.current.rotation.set(-Math.PI / 2, ry, 0)
+      g.current.position.set(station.pos[0], baseY + (station.yOff ?? 0.52), station.pos[1])
+      g.current.scale.set(1, 1, 1 + Math.sin(t * 1.3) * 0.04)
+      setLimbs(-0.08, -0.08, 0.06, -0.06)
+    } else if (station.pose === 'sit') {
+      g.current.rotation.set(0, ry, 0)
+      g.current.position.set(station.pos[0], baseY + (station.yOff ?? 0.2), station.pos[1])
+      g.current.scale.set(1, 1, 1)
+      const idle = Math.sin(t * 1.6) * 0.05
+      setLimbs(-1.45, -1.45, idle, -idle)
+    } else {
+      // idle / stand / chat
+      g.current.rotation.set(0, ry, 0)
+      g.current.position.set(station.pos[0], baseY, station.pos[1])
+      g.current.scale.set(1, 1, 1)
+      const idle = Math.sin(t * 1.5 + station.pos[0]) * 0.09
+      setLimbs(0, 0, idle, -idle)
+    }
+  }
+
+  useFrame((state, dt) => {
     if (!g.current) return
-    const t = state.clock.elapsedTime * speed + phase
-    if (pose === 'walk') {
-      const tri = Math.asin(Math.sin(t * 0.7)) / (Math.PI / 2) // smooth -1..1 triangle
-      const along = tri * range
-      const forward = Math.cos(t * 0.7) >= 0
-      if (axis === 'x') {
-        g.current.position.x = x + along
-        g.current.position.z = z
-        g.current.rotation.y = forward ? Math.PI / 2 : -Math.PI / 2
+    const t = state.clock.elapsedTime
+    if (st.current === null) {
+      const s0 = schedule[0]
+      st.current = { i: 0, mode: 'dwell', modeStart: t + startAt, pos: [s0.pos[0], s0.pos[1]] }
+    }
+    const s = st.current
+    const station = schedule[s.i]
+    if (s.mode === 'walk') {
+      const [tx, tz] = station.pos
+      const dx = tx - s.pos[0], dz = tz - s.pos[1]
+      const dist = Math.hypot(dx, dz)
+      const step = Math.min(0.5 * Math.min(dt, 0.05), dist)
+      if (dist > 0.04) {
+        s.pos[0] += (dx / dist) * step
+        s.pos[1] += (dz / dist) * step
+        g.current.scale.set(1, 1, 1)
+        g.current.rotation.set(0, Math.atan2(dx, dz), 0)
+        g.current.position.set(s.pos[0], baseY + Math.abs(Math.sin(t * 8)) * 0.02, s.pos[1])
+        const sw = Math.sin(t * 8) * 0.5
+        setLimbs(sw, -sw, -sw * 0.8, sw * 0.8)
       } else {
-        g.current.position.z = z + along
-        g.current.position.x = x
-        g.current.rotation.y = forward ? 0 : Math.PI
+        s.mode = 'dwell'; s.modeStart = t
       }
-      const sw = Math.sin(t * 7) * 0.55
-      if (ll.current) ll.current.rotation.x = sw
-      if (rl.current) rl.current.rotation.x = -sw
-      if (la.current) la.current.rotation.x = -sw * 0.8
-      if (ra.current) ra.current.rotation.x = sw * 0.8
-      g.current.position.y = baseY + Math.abs(Math.sin(t * 7)) * 0.02
-    } else if (pose === 'sit') {
-      const idle = Math.sin(t * 1.6) * 0.06
-      if (ll.current) ll.current.rotation.x = -1.4
-      if (rl.current) rl.current.rotation.x = -1.4
-      if (la.current) la.current.rotation.x = idle
-      if (ra.current) ra.current.rotation.x = -idle
-    } else if (pose === 'sleep') {
-      const br = 1 + Math.sin(t * 1.3) * 0.045 // gentle breathing
-      g.current.scale.set(1, 1, br)
+    } else {
+      dwellPose(station, t)
+      if (t - s.modeStart > (station.dwell ?? 3)) {
+        s.i = (s.i + 1) % schedule.length
+        s.mode = 'walk'
+      }
     }
   })
-  const staticRot = pose === 'sleep' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]
+
   const leg = (ref, px) => (
     <group ref={ref} position={[px, 0.2, 0]}>
-      <mesh position={[0, -0.1, 0]} raycast={noRay}><boxGeometry args={[0.09, 0.2, 0.09]} /><meshStandardMaterial color={pants} roughness={0.9} /></mesh>
+      <mesh position={[0, -0.1, 0]} raycast={noRay}><boxGeometry args={[0.09, 0.2, 0.09]} /><meshStandardMaterial color={palette.pants} roughness={0.9} /></mesh>
     </group>
   )
   const arm = (ref, px) => (
     <group ref={ref} position={[px, 0.44, 0]}>
-      <mesh position={[0, -0.1, 0]} raycast={noRay}><boxGeometry args={[0.07, 0.2, 0.08]} /><meshStandardMaterial color={shirt} roughness={0.9} /></mesh>
+      <mesh position={[0, -0.1, 0]} raycast={noRay}><boxGeometry args={[0.07, 0.2, 0.08]} /><meshStandardMaterial color={palette.shirt} roughness={0.9} /></mesh>
     </group>
   )
   return (
-    <group ref={g} position={[x, baseY, z]} rotation={staticRot}>
+    <group ref={g} position={[schedule[0].pos[0], baseY, schedule[0].pos[1]]}>
       {leg(ll, -0.06)}
       {leg(rl, 0.06)}
-      <mesh position={[0, 0.34, 0]} raycast={noRay}><boxGeometry args={[0.26, 0.26, 0.15]} /><meshStandardMaterial color={shirt} roughness={0.9} /></mesh>
+      <mesh position={[0, 0.34, 0]} raycast={noRay}><boxGeometry args={[0.26, 0.26, 0.15]} /><meshStandardMaterial color={palette.shirt} roughness={0.9} /></mesh>
+      {gender === 'f' && (
+        <mesh position={[0, 0.24, 0]} raycast={noRay}><boxGeometry args={[0.34, 0.18, 0.2]} /><meshStandardMaterial color={palette.skirt || palette.pants} roughness={0.9} /></mesh>
+      )}
       {arm(la, -0.16)}
       {arm(ra, 0.16)}
       <mesh position={[0, 0.6, 0]} raycast={noRay}><boxGeometry args={[0.2, 0.2, 0.2]} /><meshStandardMaterial color={SKIN} roughness={0.85} /></mesh>
-      <mesh position={[0, 0.69, -0.01]} raycast={noRay}><boxGeometry args={[0.22, 0.09, 0.22]} /><meshStandardMaterial color={hair} roughness={0.9} /></mesh>
+      <mesh position={[0, 0.69, -0.01]} raycast={noRay}><boxGeometry args={[0.22, 0.09, 0.22]} /><meshStandardMaterial color={palette.hair} roughness={0.9} /></mesh>
+      {gender === 'f' && (
+        <mesh position={[0, 0.5, -0.085]} raycast={noRay}><boxGeometry args={[0.22, 0.3, 0.09]} /><meshStandardMaterial color={palette.hair} roughness={0.9} /></mesh>
+      )}
     </group>
   )
 }
 
-function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor, doorColor, windowDensity, timeOfDay, weather }) {
+// per-floor girl + guy colour sets
+const COUPLES = [
+  { f: { shirt: '#e8788f', skirt: '#b5638a', pants: '#b5638a', hair: '#5a3418' }, m: { shirt: '#4a86c4', pants: '#33405b', hair: '#241a12' } },
+  { f: { shirt: '#7ab89a', skirt: '#4f7a56', pants: '#4f7a56', hair: '#12100e' }, m: { shirt: '#e0a24a', pants: '#5a4a33', hair: '#3a2414' } },
+  { f: { shirt: '#c58bc0', skirt: '#8a5a86', pants: '#8a5a86', hair: '#6a3a14' }, m: { shirt: '#5aa9a0', pants: '#3d4a5b', hair: '#141414' } },
+]
+
+function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wallColor, roofColor, doorColor, windowDensity, timeOfDay, weather }) {
   const [hover, setHover] = useState(null)
   useEffect(() => {
     document.body.style.cursor = hover ? 'pointer' : 'auto'
@@ -249,8 +289,17 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
   const moonPos = [-horiz * 0.5 - 1, Math.min(sunY + 3, 8.6), -zSign * horiz * 0.7]
   const bodyPos = tod.body === 'moon' ? moonPos : sunPos
 
-  const groundColor = groundCovers[ground]?.color || groundCovers.lawn.color
   const glowI = tod.glow
+
+  // gable-end infill triangle (fills the wall up to the roof ridge on the −X side)
+  const gableGeo = useMemo(() => {
+    const s = new THREE.Shape()
+    s.moveTo(-1.7, 0)
+    s.lineTo(1.7, 0)
+    s.lineTo(0, 1.02)
+    s.closePath()
+    return new THREE.ExtrudeGeometry(s, { depth: 0.14, bevelEnabled: false })
+  }, [])
 
   // windows for one wall, one storey
   const winMat = (extraBaseI = 0) =>
@@ -307,30 +356,52 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
     )
   }
 
-  // ---- little pixel people (NPCs) per floor: scale + life ----
+  // ---- two pixel people per floor (girl + guy), each on a varied schedule ----
   const people = []
   const addFloorPeople = (i) => {
     const fy = floorTop(i)
     const isTop = i === N - 1 && N >= 2
-    const a = PEOPLE_PALETTE[(i * 3) % PEOPLE_PALETTE.length]
-    const b = PEOPLE_PALETTE[(i * 3 + 1) % PEOPLE_PALETTE.length]
-    const c = PEOPLE_PALETTE[(i * 3 + 2) % PEOPLE_PALETTE.length]
+    const col = COUPLES[i % COUPLES.length]
+    let girl, guy
     if (i === 0) {
-      // ground: two wandering, one on the sofa
-      people.push(<Person key={`p${i}a`} pose="walk" axis="x" x={0.15} z={-0.15} range={0.9} baseY={fy} {...a} phase={0} />)
-      people.push(<Person key={`p${i}b`} pose="walk" axis="z" x={-0.45} z={0.45} range={0.7} baseY={fy} {...b} phase={2.4} speed={0.9} />)
-      people.push(<Person key={`p${i}c`} pose="sit" x={0.6} z={1.12} baseY={fy + 0.26} {...c} phase={1.2} />)
+      // ground floor: kitchen + dining + lounge. They cross paths and chat.
+      guy = [
+        { pos: [0.6, 1.15], pose: 'sit', rotY: Math.PI, yOff: 0.2, dwell: 6 }, // on the sofa, facing into the room
+        { pos: [0.0, 0.3], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 },        // chat, facing the girl (−X)
+        { pos: [-0.7, -0.5], pose: 'idle', rotY: 0, dwell: 3 },                 // by the kitchen
+      ]
+      girl = [
+        { pos: [0.95, 0.05], pose: 'sit', rotY: Math.PI, yOff: 0.22, dwell: 5 }, // dining chair, facing the table
+        { pos: [0.42, 0.3], pose: 'idle', rotY: Math.PI / 2, dwell: 4 },         // chat, facing the guy (+X)
+        { pos: [-0.5, -0.2], pose: 'idle', rotY: 0, dwell: 3 },                  // wander to kitchen
+      ]
     } else if (isTop) {
-      // bedroom: one asleep, one wandering, one sitting
-      people.push(<Person key={`p${i}a`} pose="sleep" x={-0.55} z={-1.22} baseY={fy + 0.5} {...a} phase={0.5} />)
-      people.push(<Person key={`p${i}b`} pose="walk" axis="x" x={0.5} z={0.4} range={0.7} baseY={fy} {...b} phase={1.8} />)
-      people.push(<Person key={`p${i}c`} pose="sit" x={0.85} z={0.15} baseY={fy} {...c} phase={3} />)
+      // bedroom: one sleeps, they meet in the middle. Kept central for roof clearance.
+      girl = [
+        { pos: [-0.55, -0.55], pose: 'sleep', rotY: 0, yOff: 0.52, dwell: 7 }, // in bed (head toward the back wall)
+        { pos: [0.2, 0.35], pose: 'idle', rotY: Math.PI / 2, dwell: 4 },        // up, chatting
+        { pos: [-0.4, 0.2], pose: 'idle', rotY: 0, dwell: 3 },
+      ]
+      guy = [
+        { pos: [0.55, 0.2], pose: 'sit', rotY: -Math.PI / 2, yOff: 0.0, dwell: 5 }, // sitting on the floor
+        { pos: [-0.15, 0.35], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 },          // chatting
+        { pos: [0.5, -0.2], pose: 'idle', rotY: Math.PI, dwell: 3 },
+      ]
     } else {
-      // middle floor: reading + wandering
-      people.push(<Person key={`p${i}a`} pose="sit" x={0.0} z={0.0} baseY={fy + 0.4} {...a} phase={0.7} />)
-      people.push(<Person key={`p${i}b`} pose="walk" axis="x" x={0.3} z={-0.6} range={0.8} baseY={fy} {...b} phase={2.1} speed={1.05} />)
-      people.push(<Person key={`p${i}c`} pose="walk" axis="z" x={-0.7} z={0.3} range={0.6} baseY={fy} {...c} phase={3.6} speed={0.85} />)
+      // middle floor: reading nook + wandering
+      girl = [
+        { pos: [0.0, 0.0], pose: 'sit', rotY: Math.PI, yOff: 0.28, dwell: 5 },
+        { pos: [0.3, 0.4], pose: 'idle', rotY: Math.PI / 2, dwell: 4 },
+        { pos: [-0.6, -0.3], pose: 'idle', rotY: 0, dwell: 3 },
+      ]
+      guy = [
+        { pos: [-0.7, 0.4], pose: 'idle', rotY: 0, dwell: 4 },
+        { pos: [-0.1, 0.4], pose: 'idle', rotY: -Math.PI / 2, dwell: 4 },
+        { pos: [0.6, -0.4], pose: 'idle', rotY: Math.PI, dwell: 3 },
+      ]
     }
+    people.push(<Person key={`f${i}girl`} gender="f" baseY={fy} palette={col.f} schedule={girl} startAt={0.2} />)
+    people.push(<Person key={`f${i}guy`} gender="m" baseY={fy} palette={col.m} schedule={guy} startAt={2.6} />)
   }
   for (let i = 0; i < N; i++) addFloorPeople(i)
 
@@ -377,12 +448,12 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
           {/* ---- floor slabs (one per storey) ---- */}
           <mesh position={[0, 0.09, 0]} {...pp('floor')}>
             <boxGeometry args={[3.4, 0.12, 3.4]} />
-            {mat('floor', C.floor)}
+            {mat('floor', floorColor)}
           </mesh>
           {Array.from({ length: N - 1 }, (_, i) => (
             <mesh key={'fl' + i} position={[0, floorTop(i + 1) - 0.07, 0]} {...pp('floor')}>
               <boxGeometry args={[3.4, 0.14, 3.4]} />
-              {mat('floor', C.floor)}
+              {mat('floor', floorColor)}
             </mesh>
           ))}
 
@@ -393,6 +464,10 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
           </mesh>
           <mesh position={[-W, BASE_Y + H / 2, 0]} {...pp('walls')}>
             <boxGeometry args={[0.14, H, 3.4]} />
+            {mat('walls', wallColor)}
+          </mesh>
+          {/* gable-end triangle: fills the −X wall up to the roof ridge */}
+          <mesh geometry={gableGeo} position={[-W - 0.07, BASE_Y + H, 0]} rotation={[0, Math.PI / 2, 0]} {...pp('walls')}>
             {mat('walls', wallColor)}
           </mesh>
 
@@ -438,6 +513,18 @@ function Scene({ selected, onSelect, lat, ground, stories, wallColor, roofColor,
           <mesh position={[-1.0, BASE_Y + H + 0.6, -0.5]} {...pp('roof')}>
             <boxGeometry args={[0.34, 0.6, 0.34]} />
             {mat('roof', roofColor, { r: 0.8 })}
+          </mesh>
+          {/* gutters along both eaves */}
+          {[1.9, -1.9].map((gz, i) => (
+            <mesh key={'gut' + i} position={[0, BASE_Y + H - 0.24, gz]} {...pp('roof')}>
+              <boxGeometry args={[4.15, 0.09, 0.14]} />
+              {mat('roof', '#6f6a60', { r: 0.6 })}
+            </mesh>
+          ))}
+          {/* down-pipe */}
+          <mesh position={[-1.98, BASE_Y + H / 2, 1.9]} {...pp('roof')}>
+            <boxGeometry args={[0.1, H, 0.1]} />
+            {mat('roof', '#6f6a60', { r: 0.6 })}
           </mesh>
 
           {/* ---- eaves over upper front ---- */}
