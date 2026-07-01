@@ -198,6 +198,29 @@ export function playFootstep() {
   o.start(t); o.stop(t + 0.07)
 }
 
+// tiny helper: one short 8-bit note
+function blip8(f, when, dur, type = 'square', peak = 0.05) {
+  const c = acRunning()
+  if (!c) return
+  const t = c.currentTime + when
+  const o = c.createOscillator()
+  const g = c.createGain()
+  o.type = type
+  o.frequency.setValueAtTime(f, t)
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.008)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+  o.connect(g); g.connect(sfxBus)
+  o.start(t); o.stop(t + dur + 0.02)
+}
+
+// critter noises + celebratory jingles (8-bit)
+export function playBark() { if (!sfxOn) return; blip8(240, 0, 0.09, 'square', 0.06); blip8(180, 0.1, 0.12, 'square', 0.06) }
+export function playMeow() { if (!sfxOn) return; blip8(620, 0, 0.12, 'sawtooth', 0.045); blip8(760, 0.06, 0.14, 'sawtooth', 0.045); blip8(560, 0.16, 0.16, 'sawtooth', 0.04) }
+export function playChirp() { if (!sfxOn) return; blip8(1800, 0, 0.05, 'square', 0.035); blip8(2200, 0.05, 0.05, 'square', 0.03) }
+export function playSparkle() { if (!sfxOn) return;[880, 1108, 1318, 1760].forEach((f, i) => blip8(f, i * 0.05, 0.12, 'triangle', 0.05)) }
+export function playParty() { if (!sfxOn) return;[523, 659, 784, 1046, 784, 1046].forEach((f, i) => blip8(f, i * 0.09, 0.16, 'square', 0.05)) }
+
 // looping rain: filtered white noise
 let rainNodes = null
 export function startRain() {

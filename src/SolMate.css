@@ -381,6 +381,54 @@ body {
 .sm-tut-next:hover { background: #0077ed; }
 .sm-tut-next:active { transform: scale(0.98); }
 
+/* ---------- 8-bit pixel cursor ---------- */
+:root {
+  --cur-arrow: url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2724%27%20height=%2724%27%20viewBox=%270%200%2024%2024%27%20shape-rendering=%27crispEdges%27%3E%3Cpath%20d=%27M4%202%20L4%2018%20L8%2014%20L11%2021%20L14%2020%20L11%2013%20L18%2013%20Z%27%20fill=%27%23ffffff%27%20stroke=%27%231d1d1f%27%20stroke-width=%272%27/%3E%3C/svg%3E") 4 2, auto;
+  --cur-hand: url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2724%27%20height=%2724%27%20viewBox=%270%200%2024%2024%27%20shape-rendering=%27crispEdges%27%3E%3Cpath%20d=%27M4%202%20L4%2018%20L8%2014%20L11%2021%20L14%2020%20L11%2013%20L18%2013%20Z%27%20fill=%27%23ffcf33%27%20stroke=%27%237a4a12%27%20stroke-width=%272%27/%3E%3C/svg%3E") 4 2, pointer;
+}
+body { cursor: var(--cur-arrow); }
+button, a, input, label, select, [role="button"], .sm-egg-foot { cursor: var(--cur-hand) !important; }
+.sm-stage canvas { cursor: var(--cur-arrow) !important; }
+body.sm-hover3d .sm-stage canvas { cursor: var(--cur-hand) !important; }
+
+/* ---------- confetti + fun-fact toast + easter eggs ---------- */
+.sm-confetti { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
+.sm-confetti span {
+  position: absolute; top: -8%; font-size: 1.5rem; will-change: transform;
+  animation-name: sm-fall; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+@keyframes sm-fall {
+  0% { transform: translateY(-12vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(114vh) rotate(calc(var(--rot, 40deg) * 5)); opacity: 0.85; }
+}
+
+.sm-fact {
+  position: absolute; z-index: 6; top: 16px; left: 50%; transform: translateX(-50%);
+  max-width: min(80%, 470px); display: flex; gap: 10px; align-items: flex-start;
+  background: rgba(255, 255, 255, 0.94); backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-radius: 16px; padding: 12px 16px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  font-size: 0.9rem; line-height: 1.45; color: #1d1d1f; animation: sm-fact-in 0.25s ease;
+}
+.sm-fact-ico { font-size: 1.1rem; line-height: 1.3; flex: 0 0 auto; }
+.sm-fact-big { font-size: 3rem; padding: 12px 28px; justify-content: center; }
+@keyframes sm-fact-in { from { transform: translate(-50%, -12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+.sm-rainbow {
+  position: absolute; z-index: 3; left: 50%; bottom: 6%; transform: translateX(-50%);
+  width: 96%; height: 96%; border-radius: 50%; opacity: 0.8; pointer-events: none;
+  animation: sm-fade 0.5s ease;
+  background: radial-gradient(circle,
+    transparent 39%, #8a5cf6 40%, #8a5cf6 43%, #4a86c4 43%, #4a86c4 46%,
+    #5aa03a 46%, #5aa03a 49%, #ffcf33 49%, #ffcf33 52%, #e07a3a 52%, #e07a3a 55%,
+    #b8442e 55%, #b8442e 58%, transparent 59%);
+}
+
+/* clickable logo button (easter egg) */
+.sm-brand-row { border: none; background: none; padding: 0; margin: 0; font: inherit; text-align: left; }
+.sm-brand-row.spin .sm-logo { animation: sm-spin 0.7s cubic-bezier(0.34, 1.4, 0.5, 1); }
+@keyframes sm-spin { to { transform: rotate(360deg); } }
+
 /* ---------- floating game controls ---------- */
 .sm-tools {
   position: absolute; z-index: 4; left: 50%; bottom: 18px; transform: translateX(-50%);

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Float, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
-import { playTick, playBlip, playFootstep } from './audio.js'
+import { playTick, playBlip, playFootstep, playBark, playMeow, playChirp } from './audio.js'
 
 const HL = '#f8d030' // pixel gold highlight
 
@@ -142,7 +142,7 @@ const noRay = () => null
 // seconds, then moves on — so every person cycles through walking / sitting /
 // sleeping / chatting. Stations with matching positions on a floor let two
 // people meet and face each other.
-function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
+function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0, onBubbleClick }) {
   const g = useRef()
   const ll = useRef(), rl = useRef(), la = useRef(), ra = useRef()
   const st = useRef(null)
@@ -241,15 +241,20 @@ function Person({ gender = 'm', baseY = 0, palette, schedule, startAt = 0 }) {
       {gender === 'f' && (
         <mesh position={[0, 0.5, -0.085]} raycast={noRay}><boxGeometry args={[0.22, 0.3, 0.09]} /><meshStandardMaterial color={palette.hair} roughness={0.9} /></mesh>
       )}
-      {/* speech bubble (billboarded, hidden until chatting) */}
-      <Billboard position={[0.12, 1.02, 0]}>
-        <group ref={bubble} visible={false}>
-          <mesh position={[0, 0, -0.002]} raycast={noRay}><planeGeometry args={[0.44, 0.3]} /><meshBasicMaterial color="#2a2a30" /></mesh>
-          <mesh raycast={noRay}><planeGeometry args={[0.4, 0.26]} /><meshBasicMaterial color="#ffffff" /></mesh>
+      {/* speech bubble (billboarded, hidden until chatting) — click for a fun fact */}
+      <Billboard position={[0.12, 1.05, 0]}>
+        <group
+          ref={bubble}
+          visible={false}
+          onPointerOver={(e) => { e.stopPropagation() }}
+          onClick={(e) => { e.stopPropagation(); onBubbleClick && onBubbleClick() }}
+        >
+          <mesh position={[0, 0, -0.002]}><planeGeometry args={[0.46, 0.32]} /><meshBasicMaterial color="#2a2a30" /></mesh>
+          <mesh><planeGeometry args={[0.42, 0.28]} /><meshBasicMaterial color="#ffffff" /></mesh>
           {[-0.1, 0, 0.1].map((dx, i) => (
             <mesh key={i} position={[dx, 0, 0.002]} raycast={noRay}><planeGeometry args={[0.05, 0.05]} /><meshBasicMaterial color="#5a5a62" /></mesh>
           ))}
-          <mesh position={[-0.12, -0.19, 0]} raycast={noRay}><planeGeometry args={[0.09, 0.1]} /><meshBasicMaterial color="#ffffff" /></mesh>
+          <mesh position={[-0.12, -0.2, 0]} raycast={noRay}><planeGeometry args={[0.09, 0.1]} /><meshBasicMaterial color="#ffffff" /></mesh>
         </group>
       </Billboard>
     </group>
@@ -263,11 +268,114 @@ const COUPLES = [
   { f: { shirt: '#c58bc0', skirt: '#8a5a86', pants: '#8a5a86', hair: '#6a3a14' }, m: { shirt: '#5aa9a0', pants: '#3d4a5b', hair: '#141414' } },
 ]
 
-function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wallColor, roofColor, doorColor, windowDensity, timeOfDay, weather }) {
+// ---- critters: dog, cat, birds, plane (extra life + easter eggs) ----
+function Dog({ onEgg }) {
+  const g = useRef(), tail = useRef(), lf = useRef(), lb = useRef()
+  const hop = useRef(0)
+  useFrame((state, dt) => {
+    if (!g.current) return
+    const t = state.clock.elapsedTime
+    const x = Math.sin(t * 0.4) * 1.9
+    if (hop.current > 0) hop.current = Math.max(0, hop.current - dt * 1.6)
+    g.current.position.set(x, 0.02 + hop.current, 2.75)
+    g.current.rotation.y = Math.cos(t * 0.4) >= 0 ? Math.PI / 2 : -Math.PI / 2
+    if (tail.current) tail.current.rotation.z = 0.3 + Math.sin(t * 9) * 0.5
+    const s = Math.sin(t * 9) * 0.4
+    if (lf.current) lf.current.rotation.x = s
+    if (lb.current) lb.current.rotation.x = -s
+  })
+  const click = (e) => { e.stopPropagation(); playBark(); hop.current = 0.35; onEgg && onEgg('🐶') }
+  return (
+    <group ref={g} position={[0, 0.02, 2.75]} onClick={click} onPointerOver={(e) => e.stopPropagation()}>
+      <mesh position={[0, 0.24, 0]}><boxGeometry args={[0.52, 0.24, 0.24]} /><meshStandardMaterial color="#b5763a" roughness={0.9} /></mesh>
+      <mesh position={[0.3, 0.34, 0]}><boxGeometry args={[0.22, 0.22, 0.22]} /><meshStandardMaterial color="#b5763a" roughness={0.9} /></mesh>
+      <mesh position={[0.44, 0.3, 0]}><boxGeometry args={[0.1, 0.1, 0.13]} /><meshStandardMaterial color="#7a4a22" roughness={0.9} /></mesh>
+      <mesh position={[0.26, 0.46, 0.09]}><boxGeometry args={[0.07, 0.11, 0.05]} /><meshStandardMaterial color="#8a5a28" /></mesh>
+      <mesh position={[0.26, 0.46, -0.09]}><boxGeometry args={[0.07, 0.11, 0.05]} /><meshStandardMaterial color="#8a5a28" /></mesh>
+      <group ref={lf} position={[0.17, 0.14, 0.09]}><mesh position={[0, -0.07, 0]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh></group>
+      <group ref={lb} position={[-0.17, 0.14, 0.09]}><mesh position={[0, -0.07, 0]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh></group>
+      <mesh position={[0.17, 0.07, -0.09]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh>
+      <mesh position={[-0.17, 0.07, -0.09]}><boxGeometry args={[0.07, 0.16, 0.07]} /><meshStandardMaterial color="#9a6430" /></mesh>
+      <group ref={tail} position={[-0.26, 0.3, 0]}><mesh position={[-0.09, 0.03, 0]}><boxGeometry args={[0.18, 0.06, 0.06]} /><meshStandardMaterial color="#b5763a" /></mesh></group>
+    </group>
+  )
+}
+
+function Cat({ onEgg }) {
+  const g = useRef(), tail = useRef()
+  const hop = useRef(0)
+  useFrame((state, dt) => {
+    if (!g.current) return
+    const t = state.clock.elapsedTime
+    if (hop.current > 0) hop.current = Math.max(0, hop.current - dt * 1.8)
+    g.current.position.y = 0.02 + hop.current
+    if (tail.current) tail.current.rotation.x = Math.sin(t * 2) * 0.5
+  })
+  const click = (e) => { e.stopPropagation(); playMeow(); hop.current = 0.3; onEgg && onEgg('🐱') }
+  return (
+    <group ref={g} position={[-2.15, 0.02, 2.3]} rotation={[0, 0.6, 0]} onClick={click} onPointerOver={(e) => e.stopPropagation()}>
+      <mesh position={[0, 0.17, 0]}><boxGeometry args={[0.34, 0.18, 0.18]} /><meshStandardMaterial color="#5a5a62" roughness={0.9} /></mesh>
+      <mesh position={[0.2, 0.24, 0]}><boxGeometry args={[0.17, 0.17, 0.17]} /><meshStandardMaterial color="#5a5a62" roughness={0.9} /></mesh>
+      <mesh position={[0.17, 0.35, 0.06]}><boxGeometry args={[0.05, 0.08, 0.04]} /><meshStandardMaterial color="#4a4a52" /></mesh>
+      <mesh position={[0.17, 0.35, -0.06]}><boxGeometry args={[0.05, 0.08, 0.04]} /><meshStandardMaterial color="#4a4a52" /></mesh>
+      <mesh position={[0.13, 0.09, 0.07]}><boxGeometry args={[0.06, 0.14, 0.06]} /><meshStandardMaterial color="#4a4a52" /></mesh>
+      <mesh position={[-0.13, 0.09, 0.07]}><boxGeometry args={[0.06, 0.14, 0.06]} /><meshStandardMaterial color="#4a4a52" /></mesh>
+      <group ref={tail} position={[-0.18, 0.16, 0]}><mesh position={[-0.02, 0.12, 0]}><boxGeometry args={[0.05, 0.26, 0.05]} /><meshStandardMaterial color="#5a5a62" /></mesh></group>
+    </group>
+  )
+}
+
+function Bird({ r, y, speed, phase, onEgg }) {
+  const g = useRef(), lw = useRef(), rw = useRef()
+  const spin = useRef(0)
+  useFrame((state, dt) => {
+    if (!g.current) return
+    const t = state.clock.elapsedTime * speed + phase
+    if (spin.current > 0) spin.current = Math.max(0, spin.current - dt * 7)
+    g.current.position.set(Math.cos(t) * r, y + Math.sin(t * 2) * 0.25, Math.sin(t) * r * 0.6)
+    g.current.rotation.y = -t + Math.PI / 2 + spin.current
+    const flap = Math.sin(t * 12) * 0.6
+    if (lw.current) lw.current.rotation.z = 0.3 + flap
+    if (rw.current) rw.current.rotation.z = -0.3 - flap
+  })
+  const click = (e) => { e.stopPropagation(); playChirp(); spin.current = Math.PI * 2; onEgg && onEgg('🐦') }
+  return (
+    <group ref={g} onClick={click} onPointerOver={(e) => e.stopPropagation()}>
+      <mesh><boxGeometry args={[0.18, 0.13, 0.13]} /><meshStandardMaterial color="#4a6aa8" /></mesh>
+      <mesh position={[0.12, 0.02, 0]}><boxGeometry args={[0.06, 0.05, 0.05]} /><meshStandardMaterial color="#e0a24a" /></mesh>
+      <group ref={lw} position={[0, 0.03, 0.06]}><mesh position={[0, 0, 0.09]}><boxGeometry args={[0.12, 0.03, 0.18]} /><meshStandardMaterial color="#5b8cc4" /></mesh></group>
+      <group ref={rw} position={[0, 0.03, -0.06]}><mesh position={[0, 0, -0.09]}><boxGeometry args={[0.12, 0.03, 0.18]} /><meshStandardMaterial color="#5b8cc4" /></mesh></group>
+    </group>
+  )
+}
+
+function Plane({ onEgg }) {
+  const g = useRef()
+  const wob = useRef(0)
+  useFrame((state) => {
+    if (!g.current) return
+    const t = ((state.clock.elapsedTime * 0.1) % 1.6)
+    g.current.position.set(-11 + t * 13.5, 6.8, -3.5)
+    if (wob.current !== 0) wob.current *= 0.93
+    g.current.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.04 + wob.current
+  })
+  const click = (e) => { e.stopPropagation(); playChirp(); wob.current = 0.5; onEgg && onEgg('✈️') }
+  return (
+    <group ref={g} position={[-11, 6.8, -3.5]} onClick={click} onPointerOver={(e) => e.stopPropagation()}>
+      <mesh><boxGeometry args={[0.9, 0.2, 0.2]} /><meshStandardMaterial color="#eef1f5" /></mesh>
+      <mesh position={[-0.1, 0, 0]}><boxGeometry args={[0.16, 0.28, 0.7]} /><meshStandardMaterial color="#c8ccd4" /></mesh>
+      <mesh position={[-0.4, 0.14, 0]}><boxGeometry args={[0.12, 0.2, 0.24]} /><meshStandardMaterial color="#c8ccd4" /></mesh>
+      <mesh position={[0.48, 0, 0]}><boxGeometry args={[0.1, 0.12, 0.12]} /><meshStandardMaterial color="#4a86c4" /></mesh>
+      <mesh position={[-1.05, 0, 0]}><boxGeometry args={[0.8, 0.24, 0.02]} /><meshStandardMaterial color="#ffcf33" /></mesh>
+    </group>
+  )
+}
+
+function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wallColor, roofColor, doorColor, windowDensity, timeOfDay, weather, onEgg, onBubbleClick }) {
   const [hover, setHover] = useState(null)
   useEffect(() => {
-    document.body.style.cursor = hover ? 'pointer' : 'auto'
-    return () => { document.body.style.cursor = 'auto' }
+    document.body.classList.toggle('sm-hover3d', !!hover)
+    return () => document.body.classList.remove('sm-hover3d')
   }, [hover])
 
   const pp = (id) => ({
@@ -321,7 +429,7 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
 
   // windows for one wall, one storey
   const winMat = (extraBaseI = 0) =>
-    mat('windows', C.glass, { transparent: true, opacity: 0.7, base: glowI > 0 ? '#ffce7a' : '#2a6f97', baseI: glowI > 0 ? 0.25 + glowI * 0.55 : 0.12 + extraBaseI, r: 0.2, m: 0.1 })
+    mat('windows', C.glass, { transparent: true, opacity: glowI > 0 ? 0.55 : 0.34, base: glowI > 0 ? '#ffce7a' : '#2a6f97', baseI: glowI > 0 ? 0.25 + glowI * 0.55 : 0.1 + extraBaseI, r: 0.15, m: 0.1 })
 
   const backXs = evenSpread(windowDensity, 1.0)
   const leftZs = evenSpread(Math.max(1, windowDensity - 1), 0.7).map((z) => z - 0.3)
@@ -418,8 +526,8 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
         { pos: [0.6, -0.4], pose: 'idle', rotY: Math.PI, dwell: 3 },
       ]
     }
-    people.push(<Person key={`f${i}girl`} gender="f" baseY={fy} palette={col.f} schedule={girl} startAt={0.2} />)
-    people.push(<Person key={`f${i}guy`} gender="m" baseY={fy} palette={col.m} schedule={guy} startAt={2.6} />)
+    people.push(<Person key={`f${i}girl`} gender="f" baseY={fy} palette={col.f} schedule={girl} startAt={0.2} onBubbleClick={onBubbleClick} />)
+    people.push(<Person key={`f${i}guy`} gender="m" baseY={fy} palette={col.m} schedule={guy} startAt={2.6} onBubbleClick={onBubbleClick} />)
   }
   for (let i = 0; i < N; i++) addFloorPeople(i)
 
@@ -441,6 +549,12 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
       {(weather === 'cloudy' || weather === 'rain' || weather === 'snow') && <Clouds />}
       {weather === 'rain' && <Precip type="rain" />}
       {weather === 'snow' && <Precip type="snow" />}
+
+      {/* birds + a passing plane in the sky */}
+      <Bird r={6} y={5.4} speed={0.32} phase={0} onEgg={onEgg} />
+      <Bird r={5.2} y={6.0} speed={0.4} phase={2.1} onEgg={onEgg} />
+      <Bird r={6.8} y={5.0} speed={0.26} phase={4.2} onEgg={onEgg} />
+      <Plane onEgg={onEgg} />
 
       <Float speed={1} rotationIntensity={0} floatIntensity={0.35}>
         <group position={[0, 0, 0]}>
@@ -557,6 +671,10 @@ function Scene({ selected, onSelect, lat, groundColor, floorColor, stories, wall
 
           {/* ---- little pixel people (scale + life) ---- */}
           <group>{people}</group>
+
+          {/* ---- pets in the yard ---- */}
+          <Dog onEgg={onEgg} />
+          <Cat onEgg={onEgg} />
 
           {/* ---- tree + pots (landscaping) ---- */}
           <group position={[2.25, 0, 2.15]} {...pp('tree')}>

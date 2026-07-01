@@ -14,6 +14,7 @@ import {
 import {
   unlockAudio, playHover, playClick, setSfxEnabled,
   startMusic, stopMusic, disposeAudio, startRain, stopRain,
+  playSparkle, playParty,
 } from './audio.js'
 import './SolMate.css'
 
@@ -41,6 +42,25 @@ const PALETTE = [
   '#d8d3cb', '#8fce6a', '#5aa03a',
 ]
 const DEF = { wall: '#e8d088', roof: '#8b2828', door: '#5a3a1e', floor: '#a86a3a', ground: '#8fce6a' }
+
+// fun facts shown when you tap an NPC's speech bubble
+const FACTS = [
+  'Passive design can cut a home’s heating & cooling energy by more than half — sometimes to nearly zero.',
+  'The sun is your biggest free heater: a well-placed window gains more warmth in winter than it loses.',
+  'Thermal mass — like a concrete floor — is a battery for heat: it soaks up warmth by day, releases it at night.',
+  'A correctly-sized eave blocks the high summer sun yet welcomes the low winter sun — automatically.',
+  'Light-coloured roofs can be 20–30°C cooler than dark ones on a hot day.',
+  'Deciduous trees shade you in summer, then drop their leaves to let winter sun through.',
+  'Warm air rises — high openings let it escape and pull cool air in below. That’s the “stack effect”.',
+  'Double glazing traps a layer of air, roughly halving the heat lost through the glass.',
+  'Cross-ventilation needs openings on two sides so a breeze can flow right through the room.',
+  'Insulating the roof first usually buys the most comfort for the least money.',
+  'Sealing gaps around doors and windows is one of the cheapest ways to save energy.',
+  'Orientation is free while designing — but almost impossible to change once it’s built.',
+  'In hot, humid climates, shade and airflow beat thermal mass (which just stores unwanted heat).',
+  'The Romans used passive solar — sun-facing windows and sunrooms — over 2,000 years ago.',
+]
+const CUTE_FACES = ['😊', '🥰', '😎', '🌞', '✨']
 
 // beginner "in plain terms" analogy per part
 const BEGINNER = {
@@ -243,6 +263,16 @@ export default function SolMateApp() {
   const [sfxOn, setSfxOn] = useState(true)
   const [musicOn, setMusicOn] = useState(true)
 
+  // game juice: confetti, fun-fact toast, easter eggs
+  const [confetti, setConfetti] = useState([])
+  const [fact, setFact] = useState(null)
+  const [logoSpin, setLogoSpin] = useState(false)
+  const [rainbow, setRainbow] = useState(false)
+  const confettiId = useRef(0)
+  const factTimer = useRef(null)
+  const bubbleCount = useRef(0)
+  const demoClicks = useRef(0)
+
   const rootRef = useRef(null)
 
   const city = findCity(cityName) || cities[0]
@@ -279,8 +309,55 @@ export default function SolMateApp() {
   useEffect(() => { setSfxEnabled(sfxOn) }, [sfxOn])
   useEffect(() => { if (weather === 'rain' && sfxOn) startRain(); else stopRain() }, [weather, sfxOn])
 
+  // konami code → party 🎉
+  useEffect(() => {
+    const seq = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+    let i = 0
+    const onKey = (e) => {
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
+      i = (k === seq[i]) ? i + 1 : (k === seq[0] ? 1 : 0)
+      if (i === seq.length) { i = 0; playParty(); celebrate('🎉', 40) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const celebrate = (emoji, count = 18) => {
+    const pieces = Array.from({ length: count }, () => ({
+      id: confettiId.current++, emoji,
+      left: Math.random() * 100, delay: Math.random() * 0.35,
+      dur: 1.7 + Math.random() * 1.3, rot: Math.random() * 100 - 50,
+    }))
+    setConfetti((c) => [...c, ...pieces])
+    const ids = new Set(pieces.map((p) => p.id))
+    setTimeout(() => setConfetti((c) => c.filter((p) => !ids.has(p.id))), 3400)
+  }
+  const showFact = (text, big = false) => {
+    setFact({ text, big })
+    if (factTimer.current) clearTimeout(factTimer.current)
+    factTimer.current = setTimeout(() => setFact(null), big ? 2400 : 6500)
+  }
+  const onBubbleClick = () => {
+    unlockAudio(); playClick()
+    bubbleCount.current += 1
+    if (bubbleCount.current % 3 === 0) showFact(CUTE_FACES[Math.floor(Math.random() * CUTE_FACES.length)], true)
+    else showFact(FACTS[Math.floor(Math.random() * FACTS.length)])
+  }
+  const critterEgg = (emoji) => celebrate(emoji, 12)
+  const popLogo = () => { playSparkle(); celebrate('☀️', 16); setLogoSpin(true); setTimeout(() => setLogoSpin(false), 700) }
+
   const pick = (name) => { setCityName(name); setQuery(''); setOpen(false) }
-  const selectPart = (id) => { playClick(); setSelected(id) }
+  const selectPart = (id) => {
+    playClick(); setSelected(id)
+    if (id === 'sun') { playSparkle(); celebrate('✨', 12) }
+  }
+  const onSearch = (v) => {
+    setQuery(v); setOpen(true)
+    const low = v.toLowerCase().trim()
+    if (low === 'rainbow') { setRainbow(true); celebrate('🌈', 22); setTimeout(() => setRainbow(false), 4500) }
+    else if (low === 'unicorn') celebrate('🦄', 20)
+    else if (low === 'party') { playParty(); celebrate('🎉', 30) }
+  }
   const toggleMenu = (name) => setOpenMenu((m) => (m === name ? null : name))
   const openCustomize = () => { setOpenMenu(null); setCustomizeOpen(true) }
   const toggleMusic = (n) => { setMusicOn(n); if (n) { unlockAudio(); startMusic() } else stopMusic() }
@@ -291,6 +368,8 @@ export default function SolMateApp() {
     setWallColor(DEF.wall); setRoofColor(DEF.roof); setDoorColor(DEF.door)
     setFloorColor(DEF.floor); setGroundColor(DEF.ground)
     setQuery(''); setOpen(false)
+    demoClicks.current += 1
+    if (demoClicks.current % 5 === 0) { playParty(); celebrate('🎉', 30) }
   }
 
   const startTutorial = () => { unlockAudio(); playClick(); startMusic(); setIntro('tutorial') }
@@ -306,7 +385,16 @@ export default function SolMateApp() {
           groundColor={groundColor} floorColor={floorColor}
           stories={stories} wallColor={wallColor} roofColor={roofColor} doorColor={doorColor}
           windowDensity={windowDensity} timeOfDay={tod} weather={weather}
+          onEgg={critterEgg} onBubbleClick={onBubbleClick}
         />
+
+        {rainbow && <div className="sm-rainbow" />}
+        {fact && (
+          <div className={`sm-fact${fact.big ? ' sm-fact-big' : ''}`} onClick={() => setFact(null)}>
+            {!fact.big && <span className="sm-fact-ico">💡</span>}
+            <span>{fact.text}</span>
+          </div>
+        )}
 
         {/* floating game controls */}
         <div className="sm-tools">
@@ -344,7 +432,7 @@ export default function SolMateApp() {
       {/* right panel — purely for learning */}
       <aside className="sm-panel">
         <header className="sm-brand">
-          <div className="sm-brand-row"><PixelSun size={46} /><h1>Sol Mate</h1></div>
+          <button className={`sm-brand-row${logoSpin ? ' spin' : ''}`} onClick={popLogo} aria-label="Sol Mate"><PixelSun size={46} /><h1>Sol Mate</h1></button>
           <p className="sm-tag">Learn passive design by playing.</p>
         </header>
 
@@ -354,7 +442,7 @@ export default function SolMateApp() {
           <div className="sm-block-title">Location</div>
           <div className="sm-search">
             <input className="sm-input" placeholder="Search any city…  e.g. Tokyo, Cairo" value={query}
-              onChange={(e) => { setQuery(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)} />
+              onChange={(e) => onSearch(e.target.value)} onFocus={() => setOpen(true)} />
             {open && results.length > 0 && (
               <ul className="sm-results">
                 {results.map((c) => (
@@ -437,9 +525,18 @@ export default function SolMateApp() {
         </div>
 
         <footer className="sm-foot">
-          Powered by the <strong>Sol Mate</strong> passive-design skill. Advice is a starting point — not a substitute for a thermal model, local code, or your own design judgement.
+          Powered by the <strong className="sm-egg-foot" onClick={() => celebrate('💖', 16)}>Sol Mate</strong> passive-design skill. Advice is a starting point — not a substitute for a thermal model, local code, or your own design judgement.
         </footer>
       </aside>
+
+      {/* confetti overlay */}
+      {confetti.length > 0 && (
+        <div className="sm-confetti">
+          {confetti.map((p) => (
+            <span key={p.id} style={{ left: `${p.left}%`, animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s`, '--rot': `${p.rot}deg` }}>{p.emoji}</span>
+          ))}
+        </div>
+      )}
 
       {/* customize drawer */}
       {customizeOpen && (
